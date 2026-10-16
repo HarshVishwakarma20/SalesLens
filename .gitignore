@@ -14,3 +14,37 @@ __v0_jsx-dev-runtime.ts
 node_modules
 .next/
 .DS_Store
+
+# Backend – Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+
+# Virtual environments
+backend/.venv/
+.venv/
+venv/
+env/
+ENV/
+
+# Pytest / testing
+backend/.pytest_cache/
+.pytest_cache/
+.coverage
+htmlcov/
+*.xml
+
+# Compiled / build artifacts
+dist/
+build/
+*.egg-info/
+
+# Uploaded / generated files
+backend/storage/
+
+# Secrets & local config
+.env
+.env.*
+!.env*.local

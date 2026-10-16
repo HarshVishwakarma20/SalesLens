@@ -12,9 +12,9 @@ const SPREADSHEET_ACCEPT = {
 }
 
 export function DataSourcePage() {
-  const [upload, setUpload] = useState<{ file: { name: string; size: number }; mode: UploadMode } | null>(null)
+  const [upload, setUpload] = useState<{ file: File; mode: UploadMode } | null>(null)
 
-  const handleFile = (mode: UploadMode) => (file: File) => setUpload({ file: { name: file.name, size: file.size }, mode })
+  const handleFile = (mode: UploadMode) => (file: File) => setUpload({ file, mode })
 
   return (
     <div className="mx-auto flex max-w-[1440px] animate-fadeIn flex-col gap-8">

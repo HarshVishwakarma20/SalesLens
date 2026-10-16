@@ -3,8 +3,9 @@ import type { MonthlyPoint } from '@/lib/types'
 import { CHART_COLOURS } from '@/lib/colours'
 import { formatAxisK } from '@/lib/formatters'
 import { EChart, baseTooltip } from './EChart'
+import { type ZoomRange } from '@/lib/types'
 
-export function MonthlySalesChart({ data }: { data: MonthlyPoint[] }) {
+export function MonthlySalesChart({ data, zoom }: { data: MonthlyPoint[]; zoom?: { start: number; end: number } }) {
   const option = useMemo(
     () => ({
       animationDuration: 700,

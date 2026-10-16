@@ -3,6 +3,8 @@ import { InsightBanner } from '@/components/ui/insight-banner'
 import { DataTable } from '@/components/tables/DataTable'
 import { FUNNEL_STEPS, PIPELINE_SUMMARY, QUALITY_CHECKS, JOB_HISTORY } from '@/lib/mock-data'
 import { CheckCircle2, XCircle } from 'lucide-react'
+import { useDatasetStore } from '@/stores/dataset'
+import { UploadPendingState, ProcessingState, ErrorState } from '@/components/ui/pending-state'
 
 function FunnelViz() {
   const max = FUNNEL_STEPS[0].rows
@@ -39,6 +41,35 @@ function FunnelViz() {
 }
 
 export function PipelinePage() {
+  const { status, error } = useDatasetStore()
+
+  if (status === 'idle') {
+    return (
+      <div className="mx-auto flex max-w-[1440px] animate-fadeIn flex-col gap-6">
+        <PageHeader title="Data Pipeline" description="Where rows come from and what gets cleaned out" />
+        <UploadPendingState description="Please upload a file to generate analytics." />
+      </div>
+    )
+  }
+
+  if (status === 'uploading' || status === 'processing') {
+    return (
+      <div className="mx-auto flex max-w-[1440px] animate-fadeIn flex-col gap-6">
+        <PageHeader title="Data Pipeline" description="Where rows come from and what gets cleaned out" />
+        <ProcessingState message="Running data pipeline…" />
+      </div>
+    )
+  }
+
+  if (status === 'failed') {
+    return (
+      <div className="mx-auto flex max-w-[1440px] animate-fadeIn flex-col gap-6">
+        <PageHeader title="Data Pipeline" description="Where rows come from and what gets cleaned out" />
+        <ErrorState message={error ?? 'Processing failed. Please try again.'} />
+      </div>
+    )
+  }
+
   return (
     <div className="mx-auto flex max-w-[1440px] animate-fadeIn flex-col gap-6">
       <PageHeader title="Data Pipeline" description="Where rows come from and what gets cleaned out" />

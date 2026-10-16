@@ -5,6 +5,8 @@ import { DataTable } from '@/components/tables/DataTable'
 import { PRODUCTS } from '@/lib/mock-data'
 import { formatGBP, formatPercent } from '@/lib/formatters'
 import { CHART_COLOURS } from '@/lib/colours'
+import { useDatasetStore } from '@/stores/dataset'
+import { UploadPendingState, ProcessingState, ErrorState } from '@/components/ui/pending-state'
 
 const TOP10 = PRODUCTS.slice(0, 10)
 
@@ -65,6 +67,35 @@ function QuadrantChart() {
 }
 
 export function ProductsPage() {
+  const { status, error } = useDatasetStore()
+
+  if (status === 'idle') {
+    return (
+      <div className="mx-auto flex max-w-[1440px] animate-fadeIn flex-col gap-6">
+        <PageHeader title="Products" description="Revenue, returns, and attach rates by SKU" />
+        <UploadPendingState description="Please upload a file to generate analytics." />
+      </div>
+    )
+  }
+
+  if (status === 'uploading' || status === 'processing') {
+    return (
+      <div className="mx-auto flex max-w-[1440px] animate-fadeIn flex-col gap-6">
+        <PageHeader title="Products" description="Revenue, returns, and attach rates by SKU" />
+        <ProcessingState />
+      </div>
+    )
+  }
+
+  if (status === 'failed') {
+    return (
+      <div className="mx-auto flex max-w-[1440px] animate-fadeIn flex-col gap-6">
+        <PageHeader title="Products" description="Revenue, returns, and attach rates by SKU" />
+        <ErrorState message={error ?? 'Processing failed. Please try again.'} />
+      </div>
+    )
+  }
+
   return (
     <div className="mx-auto flex max-w-[1440px] animate-fadeIn flex-col gap-6">
       <PageHeader title="Products" description="Revenue, returns, and attach rates by SKU" />

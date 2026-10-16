@@ -7,6 +7,8 @@ import { JOURNEY_CUSTOMERS, ORDERS_HIST, GAP_HIST, REVENUE_CURVE, ACQUIRED_PER_M
 import { CHART_COLOURS } from '@/lib/colours'
 import { formatGBP } from '@/lib/formatters'
 import { useCustomerDrawer } from '@/components/ui/customer-drawer'
+import { useDatasetStore } from '@/stores/dataset'
+import { UploadPendingState, ProcessingState, ErrorState } from '@/components/ui/pending-state'
 
 function HistBar({ data, xKey, yKey, color, xLabel }: { data: Record<string, unknown>[]; xKey: string; yKey: string; color: string; xLabel?: string }) {
   const option = {
@@ -37,6 +39,34 @@ function LorenzCurve() {
 
 export function JourneyPage() {
   const { openDrawer } = useCustomerDrawer()
+  const { status, error } = useDatasetStore()
+
+  if (status === 'idle') {
+    return (
+      <div className="mx-auto flex max-w-[1440px] animate-fadeIn flex-col gap-6">
+        <PageHeader title="Customer Journey" description="How customers grow, plateau, and churn" />
+        <UploadPendingState description="Please upload a file to generate analytics." />
+      </div>
+    )
+  }
+
+  if (status === 'uploading' || status === 'processing') {
+    return (
+      <div className="mx-auto flex max-w-[1440px] animate-fadeIn flex-col gap-6">
+        <PageHeader title="Customer Journey" description="How customers grow, plateau, and churn" />
+        <ProcessingState />
+      </div>
+    )
+  }
+
+  if (status === 'failed') {
+    return (
+      <div className="mx-auto flex max-w-[1440px] animate-fadeIn flex-col gap-6">
+        <PageHeader title="Customer Journey" description="How customers grow, plateau, and churn" />
+        <ErrorState message={error ?? 'Processing failed. Please try again.'} />
+      </div>
+    )
+  }
 
   return (
     <div className="mx-auto flex max-w-[1440px] animate-fadeIn flex-col gap-6">

@@ -5,10 +5,49 @@ import { PageHeader } from '@/components/ui/page-header'
 import { Skeleton } from '@/components/ui/skeleton'
 import { KpiGrid } from '@/components/kpi/KpiGrid'
 import { useDataset } from '@/hooks/useDataset'
+import { useDatasetStore } from '@/stores/dataset'
+import { UploadPendingState, ProcessingState, ErrorState } from '@/components/ui/pending-state'
 import { LeakagePanel, MonthlySalesPanel, RiskCustomersPanel, SegmentMixPanel } from './OverviewPanels'
 
 export function OverviewPage() {
   const { data } = useDataset()
+  const { status, error } = useDatasetStore()
+
+  if (status === 'idle') {
+    return (
+      <div className="mx-auto flex max-w-[1440px] animate-fadeIn flex-col gap-6">
+        <PageHeader
+          title="Overview"
+          description="Upload a dataset to see headline KPIs, sales trends, segments, and leakage."
+        />
+        <UploadPendingState description="Please upload a file to generate analytics." />
+      </div>
+    )
+  }
+
+  if (status === 'uploading' || status === 'processing') {
+    return (
+      <div className="mx-auto flex max-w-[1440px] animate-fadeIn flex-col gap-6">
+        <PageHeader
+          title="Overview"
+          description="Headline KPIs, sales, segments and leakage."
+        />
+        <ProcessingState />
+      </div>
+    )
+  }
+
+  if (status === 'failed') {
+    return (
+      <div className="mx-auto flex max-w-[1440px] animate-fadeIn flex-col gap-6">
+        <PageHeader
+          title="Overview"
+          description="Headline KPIs, sales, segments and leakage."
+        />
+        <ErrorState message={error ?? 'Processing failed. Please try again.'} />
+      </div>
+    )
+  }
 
   return (
     <div className="mx-auto flex max-w-[1440px] animate-fadeIn flex-col gap-6">

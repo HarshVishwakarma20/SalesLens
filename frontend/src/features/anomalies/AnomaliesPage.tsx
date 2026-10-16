@@ -5,6 +5,8 @@ import { DataTable } from '@/components/tables/DataTable'
 import { DAILY_SERIES } from '@/lib/mock-data'
 import { formatGBP } from '@/lib/formatters'
 import ReactECharts from 'echarts-for-react'
+import { useDatasetStore } from '@/stores/dataset'
+import { UploadPendingState, ProcessingState, ErrorState } from '@/components/ui/pending-state'
 
 const FLAGGED = DAILY_SERIES.filter(d => d.flagged)
 
@@ -39,6 +41,35 @@ const chartOption = {
 }
 
 export function AnomaliesPage() {
+  const { status, error } = useDatasetStore()
+
+  if (status === 'idle') {
+    return (
+      <div className="mx-auto flex max-w-[1440px] animate-fadeIn flex-col gap-6">
+        <PageHeader title="Anomalies" description="Detect out-of-trend spikes and drops in daily revenue" />
+        <UploadPendingState description="Please upload a file to generate analytics." />
+      </div>
+    )
+  }
+
+  if (status === 'uploading' || status === 'processing') {
+    return (
+      <div className="mx-auto flex max-w-[1440px] animate-fadeIn flex-col gap-6">
+        <PageHeader title="Anomalies" description="Detect out-of-trend spikes and drops in daily revenue" />
+        <ProcessingState />
+      </div>
+    )
+  }
+
+  if (status === 'failed') {
+    return (
+      <div className="mx-auto flex max-w-[1440px] animate-fadeIn flex-col gap-6">
+        <PageHeader title="Anomalies" description="Detect out-of-trend spikes and drops in daily revenue" />
+        <ErrorState message={error ?? 'Processing failed. Please try again.'} />
+      </div>
+    )
+  }
+
   return (
     <div className="mx-auto flex max-w-[1440px] animate-fadeIn flex-col gap-6">
       <PageHeader title="Anomalies" description="Detect out-of-trend spikes and drops in daily revenue" />

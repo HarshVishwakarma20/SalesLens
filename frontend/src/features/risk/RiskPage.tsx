@@ -9,6 +9,8 @@ import { SEGMENT_COLOURS, RISK_COLOURS } from '@/lib/colours'
 import { formatGBP } from '@/lib/formatters'
 import { useCustomerDrawer } from '@/components/ui/customer-drawer'
 import type { RiskBand, RiskScore, SegmentName } from '@/lib/types'
+import { useDatasetStore } from '@/stores/dataset'
+import { UploadPendingState, ProcessingState, ErrorState } from '@/components/ui/pending-state'
 
 const PRESETS: { name: string; w: [number, number, number, number] }[] = [
   { name: 'Default', w: [40, 25, 20, 15] },
@@ -88,6 +90,34 @@ function ComponentBar({ row }: { row: RiskScore }) {
 export function RiskPage() {
   const [weights, setWeights] = useState([40, 25, 20, 15])
   const { openDrawer } = useCustomerDrawer()
+  const { status, error } = useDatasetStore()
+
+  if (status === 'idle') {
+    return (
+      <div className="mx-auto flex max-w-[1440px] animate-fadeIn flex-col gap-6">
+        <PageHeader title="Churn Risk" description="Who is about to leave, and how bad is it?" />
+        <UploadPendingState description="Please upload a file to generate analytics." />
+      </div>
+    )
+  }
+
+  if (status === 'uploading' || status === 'processing') {
+    return (
+      <div className="mx-auto flex max-w-[1440px] animate-fadeIn flex-col gap-6">
+        <PageHeader title="Churn Risk" description="Who is about to leave, and how bad is it?" />
+        <ProcessingState />
+      </div>
+    )
+  }
+
+  if (status === 'failed') {
+    return (
+      <div className="mx-auto flex max-w-[1440px] animate-fadeIn flex-col gap-6">
+        <PageHeader title="Churn Risk" description="Who is about to leave, and how bad is it?" />
+        <ErrorState message={error ?? 'Processing failed. Please try again.'} />
+      </div>
+    )
+  }
 
   const reScored = useMemo<RiskScore[]>(() => {
     const [wR, wRet, wG, wA] = weights.map(w => w / 100)
