@@ -37,18 +37,39 @@ export const baseTooltip = {
   extraCssText: 'border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.35);',
 }
 
+import { useMemo } from 'react'
+
 interface EChartProps {
   option: EChartsCoreOption
   className?: string
   ariaLabel: string
+  zoomable?: boolean
 }
 
-export function EChart({ option, className, ariaLabel }: EChartProps) {
+export function EChart({ option, className, ariaLabel, zoomable = true }: EChartProps) {
+  const mergedOption = useMemo(() => {
+    if (!zoomable) return option
+
+    const opt = { ...(option as Record<string, unknown>) }
+    // If chart has an xAxis and dataZoom is not explicitly defined, add an inside zoom
+    if (opt.xAxis && !opt.dataZoom) {
+      opt.dataZoom = [
+        {
+          type: 'inside',
+          zoomOnMouseWheel: true,
+          moveOnMouseMove: true,
+          preventDefaultMouseMove: false,
+        },
+      ]
+    }
+    return opt as EChartsCoreOption
+  }, [option, zoomable])
+
   return (
     <div role="img" aria-label={ariaLabel} className={cn('w-full', className)}>
       <ReactEChartsCore
         echarts={echarts}
-        option={option}
+        option={mergedOption}
         notMerge
         lazyUpdate
         style={{ height: '100%', width: '100%' }}
@@ -57,3 +78,4 @@ export function EChart({ option, className, ariaLabel }: EChartProps) {
     </div>
   )
 }
+

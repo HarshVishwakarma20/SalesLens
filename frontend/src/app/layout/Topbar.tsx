@@ -8,6 +8,8 @@ import { useFilters } from '@/hooks/useFilters'
 import { ALL_SEGMENTS } from '@/stores/filters'
 import { SEGMENT_COLOURS } from '@/lib/colours'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { generatePdfReport } from '@/lib/pdf-report'
+import type { Dataset } from '@/lib/types'
 import { cn } from '@/lib/utils'
 
 const pill =
@@ -53,22 +55,41 @@ function SegmentFilter() {
   )
 }
 
-function ExportMenu() {
+function ExportMenu({ dataset }: { dataset?: Dataset }) {
+  const handleExport = (fmt: string) => {
+    if (fmt === 'PDF report') {
+      try {
+        toast.info('Generating Executive PDF Report...')
+        generatePdfReport(dataset)
+        toast.success('Executive PDF report downloaded to your files!')
+      } catch (err: any) {
+        console.error('PDF export failed:', err)
+        toast.error(`PDF generation failed: ${err?.message || 'Unknown error'}`)
+      }
+    } else if (fmt === 'CSV') {
+      toast.info('Downloading Dataset CSV...')
+      window.open('/api/v1/datasets/export/customer_journey.csv', '_blank')
+    } else if (fmt === 'XLSX') {
+      toast.info('Downloading Cleaned Excel File...')
+      window.open('/api/v1/datasets/cleaned-file', '_blank')
+    }
+  }
+
   return (
     <Popover>
       <PopoverTrigger className={cn(pill, 'px-2.5')} aria-label="Export">
         <Download className="size-4" aria-hidden />
         <ChevronDown className="size-3.5 text-faint" aria-hidden />
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-40 p-1.5">
+      <PopoverContent align="end" className="w-44 p-1.5">
         {['CSV', 'XLSX', 'PDF report'].map((fmt) => (
           <button
             key={fmt}
             type="button"
-            onClick={() => toast(`Exporting ${fmt}...`, { description: 'Available when the backend is connected.' })}
+            onClick={() => handleExport(fmt)}
             className="w-full rounded-lg px-2.5 py-1.5 text-left text-sm text-foreground hover:bg-raised"
           >
-            {fmt}
+            Export {fmt}
           </button>
         ))}
       </PopoverContent>
@@ -112,7 +133,7 @@ export function Topbar() {
           <span className="hidden sm:inline">Search...</span>
           <kbd className="hidden rounded border border-border bg-card px-1.5 py-0.5 font-mono text-[10px] text-faint sm:inline">Ctrl K</kbd>
         </button>
-        <ExportMenu />
+        <ExportMenu dataset={dataset} />
         <button
           type="button"
           onClick={toggleTheme}

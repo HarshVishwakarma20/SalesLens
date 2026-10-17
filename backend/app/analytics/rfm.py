@@ -146,7 +146,8 @@ def build_rfm_table(
         raise ValueError("Sales DataFrame is empty — cannot build RFM table.")
 
     df = df.copy()
-    df[date_col] = pd.to_datetime(df[date_col])
+    d_col = df[date_col].iloc[:, 0] if isinstance(df[date_col], pd.DataFrame) else df[date_col]
+    df[date_col] = pd.to_datetime(d_col)
 
     if ref_date is None:
         ref_date = df[date_col].max() + pd.Timedelta(days=1)

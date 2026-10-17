@@ -98,22 +98,28 @@
 }
 
 @utility sl-card {
+  position: relative;
   background-color: var(--card);
   border: 1px solid var(--border);
   border-radius: 16px;
   box-shadow: var(--card-inset);
   transition:
-    border-color 0.2s ease,
-    box-shadow 0.2s ease,
-    transform 0.15s ease;
+    transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 0.25s ease,
+    opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+    filter 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform, box-shadow, opacity, filter;
 
   &:hover {
-    border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+    transform: scale(1.025) translateY(-2px);
+    z-index: 25 !important;
+    border-color: var(--accent) !important;
     box-shadow:
-      0 0 0 1px color-mix(in srgb, var(--accent) 20%, transparent),
-      0 8px 32px rgba(0, 0, 0, 0.3),
-      0 0 20px rgba(20, 184, 166, 0.08),
-      var(--card-inset);
+      0 0 0 1.5px var(--accent),
+      0 16px 40px rgba(0, 0, 0, 0.45),
+      0 0 30px rgba(20, 184, 166, 0.35),
+      var(--card-inset) !important;
   }
 
   &:focus-within {
@@ -127,24 +133,29 @@
 }
 
 @utility sl-card-interactive {
+  position: relative;
   background-color: var(--card);
   border: 1px solid var(--border);
   border-radius: 16px;
   box-shadow: var(--card-inset);
   cursor: pointer;
   transition:
-    border-color 0.2s ease,
-    box-shadow 0.2s ease,
-    transform 0.15s ease;
+    transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 0.25s ease,
+    opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+    filter 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform, box-shadow, opacity, filter;
 
   &:hover {
-    border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+    transform: scale(1.03) translateY(-3px);
+    z-index: 25 !important;
+    border-color: var(--accent) !important;
     box-shadow:
-      0 0 0 1px color-mix(in srgb, var(--accent) 20%, transparent),
-      0 8px 32px rgba(0, 0, 0, 0.3),
-      0 0 20px rgba(20, 184, 166, 0.1),
-      var(--card-inset);
-    transform: translateY(-1px);
+      0 0 0 1.5px var(--accent),
+      0 18px 44px rgba(0, 0, 0, 0.48),
+      0 0 32px rgba(20, 184, 166, 0.4),
+      var(--card-inset) !important;
   }
 
   &:focus-visible {
@@ -156,6 +167,19 @@
     outline: none;
     transform: translateY(-1px);
   }
+}
+
+/* Spotlight focus: when any card in a grid or spotlight container is hovered, dim and blur others */
+.grid:has(> .sl-card:hover) > .sl-card:not(:hover),
+.grid:has(> * > .sl-card:hover) > *:not(:has(.sl-card:hover)) .sl-card,
+.sl-spotlight:has(.sl-card:hover) .sl-card:not(:hover) {
+  opacity: 0.45;
+  filter: blur(1.5px);
+  transform: scale(0.985);
+  transition:
+    opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+    filter 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @utility accent-gradient-bg {

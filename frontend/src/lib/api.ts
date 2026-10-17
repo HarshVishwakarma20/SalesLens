@@ -6,12 +6,15 @@
  * We keep them as-is and let TypeScript types document the shapes.
  */
 
-const BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? 'http://localhost:8000/api/v1'
+const BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? '/api/v1'
+
+import type { DatasetSummary, Dataset } from './types'
 
 // ─── Generic fetch helper ─────────────────────────────────────────────────────
 
 async function get<T>(path: string, params?: Record<string, string | number | boolean | undefined>): Promise<T> {
-  const url = new URL(`${BASE}${path}`)
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000'
+  const url = new URL(`${BASE}${path}`, origin)
   if (params) {
     for (const [k, v] of Object.entries(params)) {
       if (v !== undefined && v !== null) url.searchParams.set(k, String(v))
@@ -326,7 +329,12 @@ export const api = {
   getCustomer360: (customerId: number) =>
     get<BackendCustomer360>(`/datasets/customers/${customerId}`),
 
+  listDatasets: () => get<DatasetSummary[]>('/datasets'),
+
+  getDataset: (id: string) => get<Dataset>(`/datasets/${id}`),
+
   exportCsvUrl: (table: string) => `${BASE}/datasets/export/${table}.csv`,
 
   cleanedFileUrl: () => `${BASE}/datasets/cleaned-file`,
 }
+

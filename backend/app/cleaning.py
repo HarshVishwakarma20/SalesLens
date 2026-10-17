@@ -72,21 +72,126 @@ FINAL_COLUMNS: list[str] = [
 ]
 
 
+COLUMN_ALIASES: dict[str, str] = {
+    "customerid": "CustomerID",
+    "customer_id": "CustomerID",
+    "customer id": "CustomerID",
+    "client_id": "CustomerID",
+    "clientid": "CustomerID",
+    "invoiceno": "InvoiceNo",
+    "invoice_no": "InvoiceNo",
+    "invoice no": "InvoiceNo",
+    "invoicenumber": "InvoiceNo",
+    "invoice_number": "InvoiceNo",
+    "invoice number": "InvoiceNo",
+    "invoicedate": "InvoiceDate",
+    "invoice_date": "InvoiceDate",
+    "invoice date": "InvoiceDate",
+    "stockcode": "StockCode",
+    "stock_code": "StockCode",
+    "stock code": "StockCode",
+    "sku": "StockCode",
+    "product_id": "StockCode",
+    "product id": "StockCode",
+    "item_code": "StockCode",
+    "description": "Description",
+    "item_description": "Description",
+    "product_name": "Description",
+    "product name": "Description",
+    "quantity": "Quantity",
+    "qty": "Quantity",
+    "unitprice": "UnitPrice",
+    "unit_price": "UnitPrice",
+    "unit price": "UnitPrice",
+    "price": "UnitPrice",
+    "country": "Country",
+    "netrevenue": "NetRevenue",
+    "net_revenue": "NetRevenue",
+    "net revenue": "NetRevenue",
+    "linevalue": "LineValue",
+    "line_value": "LineValue",
+    "line value": "LineValue",
+    "transactiontype": "TransactionType",
+    "transaction_type": "TransactionType",
+    "transaction type": "TransactionType",
+    "salesvalue": "SalesValue",
+    "sales_value": "SalesValue",
+    "sales value": "SalesValue",
+    "returnvalue": "ReturnValue",
+    "return_value": "ReturnValue",
+    "return value": "ReturnValue",
+}
+
+
+def standardize_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """Standardize DataFrame column names handling aliases, case, whitespace, and duplicates."""
+    df = df.copy()
+
+    # 1. Strip whitespace and ensure string column names
+    df.columns = [str(c).strip() for c in df.columns]
+
+    # 2. Immediately drop any exact duplicate columns
+    if not df.columns.is_unique:
+        df = df.loc[:, ~df.columns.duplicated(keep="first")].copy()
+
+    # 3. Detect canonical column presence before alias mapping
+    lower_existing = {str(c).lower(): c for c in df.columns}
+    has_invoice_date = any(k in lower_existing for k in ("invoicedate", "invoice_date", "invoice date"))
+    has_net_revenue = any(k in lower_existing for k in ("netrevenue", "net_revenue", "net revenue"))
+
+    new_cols = []
+    for c in df.columns:
+        clean = str(c).strip()
+        key = clean.lower()
+
+        # If date alias: only map to InvoiceDate if InvoiceDate is NOT already present
+        if key in ("date", "order_date", "order date"):
+            if not has_invoice_date:
+                new_cols.append("InvoiceDate")
+                has_invoice_date = True
+            else:
+                new_cols.append("Date")
+        # If linevalue alias: only map to NetRevenue if NetRevenue is NOT already present
+        elif key in ("linevalue", "line_value", "line value"):
+            if not has_net_revenue:
+                new_cols.append("NetRevenue")
+                has_net_revenue = True
+            else:
+                new_cols.append("LineValue")
+        else:
+            new_cols.append(COLUMN_ALIASES.get(key, clean))
+
+    df.columns = new_cols
+
+    # 4. Guarantee 100% unique column names after alias normalization
+    if not df.columns.is_unique:
+        df = df.loc[:, ~df.columns.duplicated(keep="first")].copy()
+
+    return df
+
+
 # ---------------------------------------------------------------------------
 # Public helpers
 # ---------------------------------------------------------------------------
 
 def read_upload(file_bytes: bytes, filename: str) -> pd.DataFrame:
-    """Parse a CSV or Excel upload into a DataFrame."""
+    """Parse a CSV, Excel, or Parquet upload into a DataFrame."""
     name = filename.lower()
     if name.endswith(".csv"):
-        return pd.read_csv(io.BytesIO(file_bytes))
-    if name.endswith((".xlsx", ".xls")):
-        return pd.read_excel(io.BytesIO(file_bytes))
-    raise ValueError(
-        f"Unsupported file type '{filename}'. "
-        "Only CSV (.csv) and Excel (.xlsx) files are accepted."
-    )
+        df = pd.read_csv(io.BytesIO(file_bytes))
+    elif name.endswith((".xlsx", ".xls")):
+        try:
+            df = pd.read_excel(io.BytesIO(file_bytes), engine="openpyxl")
+        except Exception:
+            df = pd.read_excel(io.BytesIO(file_bytes))
+    elif name.endswith(".parquet"):
+        df = pd.read_parquet(io.BytesIO(file_bytes))
+    else:
+        raise ValueError(
+            f"Unsupported file type '{filename}'. "
+            "Only CSV (.csv), Excel (.xlsx/.xls), and Parquet (.parquet) files are accepted."
+        )
+    return standardize_columns(df)
 
 
 def detect_file_type(df: pd.DataFrame) -> str:
@@ -94,17 +199,18 @@ def detect_file_type(df: pd.DataFrame) -> str:
     Return 'raw', 'cleaned', or 'unknown' based on the column set.
 
     Detection order:
-      1. If all 8 RAW_REQUIRED_COLS are present → 'raw'
-      2. If CLEANED_REQUIRED_COLS + a revenue column are present → 'cleaned'
-      3. Otherwise → 'unknown'
+      1. If CLEANED_REQUIRED_COLS + revenue/transaction column are present -> 'cleaned'
+      2. If all 8 RAW_REQUIRED_COLS are present -> 'raw'
+      3. Otherwise -> 'unknown'
     """
-    cols = set(df.columns.str.strip())
-    if RAW_REQUIRED_COLS.issubset(cols):
-        return "raw"
+    df_std = standardize_columns(df)
+    cols = set(str(c).strip() for c in df_std.columns)
     if CLEANED_REQUIRED_COLS.issubset(cols) and (
-        "NetRevenue" in cols or "LineValue" in cols
+        "NetRevenue" in cols or "LineValue" in cols or "TransactionType" in cols
     ):
         return "cleaned"
+    if RAW_REQUIRED_COLS.issubset(cols):
+        return "raw"
     return "unknown"
 
 
@@ -117,8 +223,7 @@ def clean_raw_data(df: pd.DataFrame) -> tuple[pd.DataFrame, dict[str, Any]]:
     summary["originalRows"] = len(df)
 
     # --- Standardise column names ---
-    df = df.copy()
-    df.columns = df.columns.str.strip()
+    df = standardize_columns(df)
 
     missing_cols = [c for c in RAW_REQUIRED_COLS if c not in df.columns]
     if missing_cols:
@@ -137,7 +242,8 @@ def clean_raw_data(df: pd.DataFrame) -> tuple[pd.DataFrame, dict[str, Any]]:
     df["Quantity"] = pd.to_numeric(df["Quantity"], errors="coerce")
     df["UnitPrice"] = pd.to_numeric(df["UnitPrice"], errors="coerce")
     df["CustomerID"] = pd.to_numeric(df["CustomerID"], errors="coerce")
-    df["InvoiceDate"] = pd.to_datetime(df["InvoiceDate"], errors="coerce")
+    inv_date = df["InvoiceDate"].iloc[:, 0] if isinstance(df["InvoiceDate"], pd.DataFrame) else df["InvoiceDate"]
+    df["InvoiceDate"] = pd.to_datetime(inv_date, errors="coerce")
 
     # --- Remove rows with missing CustomerID ---
     missing_cid = int(df["CustomerID"].isna().sum())
@@ -220,12 +326,13 @@ def prepare_cleaned_data(df: pd.DataFrame) -> tuple[pd.DataFrame, dict[str, Any]
     """
     summary: dict[str, Any] = {"originalRows": len(df), "fileType": "pre-cleaned"}
 
-    df = df.copy()
-    df.columns = df.columns.str.strip()
+    df = standardize_columns(df)
 
     # Accept LineValue as an alias for NetRevenue
     if "NetRevenue" not in df.columns and "LineValue" in df.columns:
         df["NetRevenue"] = df["LineValue"]
+    elif "NetRevenue" not in df.columns and "SalesValue" in df.columns:
+        df["NetRevenue"] = df["SalesValue"] - df.get("ReturnValue", 0.0)
 
     missing = [c for c in CLEANED_REQUIRED_COLS if c not in df.columns]
     if missing or "NetRevenue" not in df.columns:
@@ -236,18 +343,16 @@ def prepare_cleaned_data(df: pd.DataFrame) -> tuple[pd.DataFrame, dict[str, Any]
 
     # Standardise types
     df["CustomerID"] = pd.to_numeric(df["CustomerID"], errors="coerce")
-    df["InvoiceDate"] = pd.to_datetime(df["InvoiceDate"], errors="coerce")
+    inv_date = df["InvoiceDate"].iloc[:, 0] if isinstance(df["InvoiceDate"], pd.DataFrame) else df["InvoiceDate"]
+    df["InvoiceDate"] = pd.to_datetime(inv_date, errors="coerce")
     df["NetRevenue"] = pd.to_numeric(df["NetRevenue"], errors="coerce")
     df = df.dropna(subset=["CustomerID", "InvoiceDate", "NetRevenue"]).copy()
     df["CustomerID"] = df["CustomerID"].astype("Int64")
 
-    # Add helper columns if missing
-    if "Month" not in df.columns:
-        df["Month"] = df["InvoiceDate"].dt.to_period("M").astype(str)
-    if "Year" not in df.columns:
-        df["Year"] = df["InvoiceDate"].dt.year
-    if "Date" not in df.columns:
-        df["Date"] = df["InvoiceDate"].dt.date
+    # Ensure helper date columns are always clean and consistent
+    df["Date"] = df["InvoiceDate"].dt.date
+    df["Month"] = df["InvoiceDate"].dt.to_period("M").astype(str)
+    df["Year"] = df["InvoiceDate"].dt.year
 
     # Classify transaction type from NetRevenue sign
     if "TransactionType" not in df.columns:

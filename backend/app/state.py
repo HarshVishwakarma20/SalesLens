@@ -36,6 +36,7 @@ class _AppState:
     # File metadata
     cleaned_file_path: Optional[str] = None
     dataset_name: Optional[str] = None
+    dataset_id: Optional[int] = None
     is_raw_input: bool = False
     cleaning_summary: Optional[dict] = None
 
@@ -57,6 +58,7 @@ class _AppState:
         self.kpis = None
         self.cleaned_file_path = None
         self.dataset_name = None
+        self.dataset_id = None
         self.is_raw_input = False
         self.cleaning_summary = None
 

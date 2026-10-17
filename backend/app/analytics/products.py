@@ -77,8 +77,11 @@ def product_contribution(
     product_df = (
         pd.concat([sold, back, net, buyers, attach, return_rate], axis=1)
         .fillna(0)
-        .reset_index()
     )
+    product_df.index.name = "StockCode"
+    product_df = product_df.reset_index()
+    if "index" in product_df.columns and "StockCode" not in product_df.columns:
+        product_df = product_df.rename(columns={"index": "StockCode"})
 
     # Attach last-known description
     if "Description" in sales_df.columns:
