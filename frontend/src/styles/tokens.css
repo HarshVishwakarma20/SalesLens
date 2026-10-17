@@ -1,0 +1,37 @@
+:root {
+  --background: #f4f8f9;
+  --card: #ffffff;
+  --raised: #eaf2f4;
+  --border: #d9e6ea;
+  --foreground: #0b1f26;
+  --muted-foreground: #3d5a64;
+  --faint: #6a8892;
+  --accent: #0f766e;
+  --accent-2: #0e7490;
+  --accent-strong: #0d9488;
+  --positive: #34d399;
+  --negative: #f87171;
+  --warning: #fbbf24;
+  --info: #38bdf8;
+  --on-accent: #ffffff;
+  --card-inset: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+html.dark {
+  --background: #071318;
+  --card: #0c1d24;
+  --raised: #112a33;
+  --border: #1b3a45;
+  --foreground: #e8f3f5;
+  --muted-foreground: #9db8c0;
+  --faint: #6a8892;
+  --accent: #14b8a6;
+  --accent-2: #0ea5e9;
+  --accent-strong: #0f766e;
+  --positive: #34d399;
+  --negative: #f87171;
+  --warning: #fbbf24;
+  --info: #38bdf8;
+  --on-accent: #ffffff;
+  --card-inset: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}

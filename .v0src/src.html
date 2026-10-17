@@ -1,0 +1,2072 @@
+<!DOCTYPE html><html lang="en" class="dark" style=""><svg class="inline-defs-container" aria-hidden="true" style="position:absolute;width:0;height:0;overflow:hidden"></svg><head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SalesLens - Customer Analytics Dashboard</title>
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS CDN with custom config matching specs -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            background: 'var(--background)',
+            card: 'var(--card)',
+            raised: 'var(--raised)',
+            border: 'var(--border)',
+            foreground: 'var(--foreground)',
+            'muted-foreground': 'var(--muted-foreground)',
+            faint: 'var(--faint)',
+            accent: 'var(--accent)',
+            'accent-2': 'var(--accent-2)',
+            'accent-strong': 'var(--accent-strong)',
+            positive: 'var(--positive)',
+            negative: 'var(--negative)',
+            warning: 'var(--warning)',
+            info: 'var(--info)',
+            // Segments
+            segChampion: '#F5B83D',
+            segLoyal: '#14B8A6',
+            segPromising: '#38BDF8',
+            segNew: '#7AA2F7',
+            segAtRisk: '#FB923C',
+            segLost: '#EF6B6B',
+            // Risk
+            riskLow: '#2DD4BF',
+            riskMed: '#FBBF24',
+            riskHigh: '#FB923C',
+            riskCrit: '#EF4444',
+          },
+          borderRadius: {
+            'card': '16px',
+            'elem': '10px',
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Recharts & React CDN setup or lightweight inline SVG charts with full fidelity -->
+  <style>
+    :root {
+      /* LIGHT TOKENS */
+      --background: #F4F8F9;
+      --card: #FFFFFF;
+      --raised: #EAF2F4;
+      --border: #D9E6EA;
+      --foreground: #0B1F26;
+      --muted-foreground: #3D5A64;
+      --faint: #6A8892;
+      --accent: #0F766E;
+      --accent-2: #0E7490;
+      --accent-strong: #0D9488;
+      --positive: #34D399;
+      --negative: #F87171;
+      --warning: #FBBF24;
+      --info: #38BDF8;
+      --card-shadow: 0 4px 20px rgba(0,0,0,0.04);
+      --card-hover-shadow: 0 8px 24px rgba(0,0,0,0.12);
+      --card-inset: inset 0 1px 0 rgba(255,255,255,0.6);
+    }
+
+    html.dark {
+      /* DARK TOKENS */
+      --background: #071318;
+      --card: #0C1D24;
+      --raised: #112A33;
+      --border: #1B3A45;
+      --foreground: #E8F3F5;
+      --muted-foreground: #9DB8C0;
+      --faint: #6A8892;
+      --accent: #14B8A6;
+      --accent-2: #0EA5E9;
+      --accent-strong: #0F766E;
+      --positive: #34D399;
+      --negative: #F87171;
+      --warning: #FBBF24;
+      --info: #38BDF8;
+      --card-shadow: 0 4px 20px rgba(0,0,0,0.25);
+      --card-hover-shadow: 0 8px 24px rgba(0,0,0,0.45);
+      --card-inset: inset 0 1px 0 rgba(255,255,255,0.04);
+    }
+
+    body {
+      background-color: var(--background);
+      color: var(--foreground);
+      font-family: 'Inter', sans-serif;
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    .num-tabular {
+      font-family: 'JetBrains Mono', monospace;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .sl-card {
+      background-color: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      box-shadow: var(--card-inset);
+      transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+    }
+    .sl-card:hover {
+      border-color: rgba(20, 184, 166, 0.35);
+      box-shadow: 0 8px 24px rgba(0,0,0,0.25), var(--card-inset);
+    }
+
+    .accent-gradient-bg {
+      background: linear-gradient(135deg, #0D9488, #0EA5E9);
+    }
+    .accent-gradient-text {
+      background: linear-gradient(135deg, #0D9488, #0EA5E9);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    /* Custom dropzone hover */
+    .dropzone-hover {
+      background-color: rgba(20, 184, 166, 0.08);
+      border-color: var(--accent);
+    }
+
+    /* Tooltip styling */
+    .chart-tooltip {
+      background-color: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 8px 12px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    }
+
+    /* Focus ring */
+    *:focus-visible {
+      outline: 2px solid var(--accent-2);
+      outline-offset: 2px;
+    }
+
+    /* Shimmer skeleton */
+    @keyframes shimmer {
+      100% { transform: translateX(100%); }
+    }
+    .skeleton {
+      position: relative;
+      overflow: hidden;
+      background-color: var(--raised);
+    }
+    .skeleton::after {
+      position: absolute;
+      top: 0; right: 0; bottom: 0; left: 0;
+      transform: translateX(-100%);
+      background-image: linear-gradient(90deg, rgba(255, 255, 255, 0) 0, rgba(255, 255, 255, 0.05) 20%, rgba(255, 255, 255, 0.1) 60%, rgba(255, 255, 255, 0));
+      animation: shimmer 1.5s infinite;
+      content: '';
+    }
+
+    /* Toast animation */
+    #toast {
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+    }
+
+    /* Custom scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col antialiased">
+
+  <!-- APP SHELL CONTAINER -->
+  <div class="flex h-screen w-full overflow-hidden bg-background">
+
+    <!-- SIDEBAR (248px desktop / collapses to 72px) -->
+    <aside id="sidebar" class="w-[248px] shrink-0 h-full bg-card border-r border-border flex flex-col justify-between transition-all duration-300 z-30 select-none">
+      <div class="flex flex-col h-full">
+        <!-- Logo & Header -->
+        <div class="h-14 flex items-center px-4 border-b border-border/40 justify-between">
+          <div class="flex items-center gap-3 overflow-hidden cursor-pointer" onclick="navigateTo('/')">
+            <div class="w-7 h-7 rounded-lg accent-gradient-bg flex items-center justify-center shrink-0 shadow-sm shadow-teal-500/20">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="scan-search" aria-hidden="true" class="lucide lucide-scan-search w-4 h-4 text-white"><path d="M3 7V5a2 2 0 0 1 2-2h2"></path><path d="M17 3h2a2 2 0 0 1 2 2v2"></path><path d="M21 17v2a2 2 0 0 1-2 2h-2"></path><path d="M7 21H5a2 2 0 0 1-2-2v-2"></path><circle cx="12" cy="12" r="3"></circle><path d="m16 16-1.9-1.9"></path></svg>
+            </div>
+            <span class="sidebar-text font-semibold text-[18px] tracking-tight text-foreground">SalesLens</span>
+          </div>
+        </div>
+
+        <!-- Navigation items list -->
+        <nav class="flex-1 overflow-y-auto px-3 py-3 space-y-1" id="nav-list">
+          <!-- Item: Data Source -->
+          <a href="#/" onclick="navigateTo('/'); return false;" id="nav-item-root" class="nav-item flex items-center gap-3 h-10 px-3 rounded-[10px] text-sm font-medium transition-colors relative bg-accent/10 border-l-[3px] border-accent text-foreground">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="upload-cloud" aria-hidden="true" class="lucide lucide-upload-cloud w-4 h-4 shrink-0 text-accent"><path d="M12 13v8"></path><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"></path><path d="m8 17 4-4 4 4"></path></svg>
+            <span class="sidebar-text truncate">Data Source</span>
+          </a>
+          <!-- Item: Overview -->
+          <a href="#/overview" onclick="navigateTo('/overview'); return false;" id="nav-item-overview" class="nav-item flex items-center gap-3 h-10 px-3 rounded-[10px] text-sm font-medium transition-colors hover:bg-raised hover:text-foreground relative text-muted-foreground">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="layout-dashboard" aria-hidden="true" class="lucide lucide-layout-dashboard w-4 h-4 shrink-0"><rect width="7" height="9" x="3" y="3" rx="1"></rect><rect width="7" height="5" x="14" y="3" rx="1"></rect><rect width="7" height="9" x="14" y="12" rx="1"></rect><rect width="7" height="5" x="3" y="16" rx="1"></rect></svg>
+            <span class="sidebar-text truncate">Overview</span>
+          </a>
+          <!-- Item: Customer Journey -->
+          <a href="#/journey" onclick="navigateTo('/journey'); return false;" id="nav-item-journey" class="nav-item flex items-center gap-3 h-10 px-3 rounded-[10px] text-sm font-medium transition-colors hover:bg-raised hover:text-foreground relative text-muted-foreground">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="route" aria-hidden="true" class="lucide lucide-route w-4 h-4 shrink-0"><circle cx="6" cy="19" r="3"></circle><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"></path><circle cx="18" cy="5" r="3"></circle></svg>
+            <span class="sidebar-text truncate">Customer Journey</span>
+          </a>
+          <!-- Item: Segments -->
+          <a href="#/segments" onclick="navigateTo('/segments'); return false;" id="nav-item-segments" class="nav-item flex items-center gap-3 h-10 px-3 rounded-[10px] text-sm font-medium transition-colors hover:bg-raised hover:text-foreground relative text-muted-foreground">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="users" aria-hidden="true" class="lucide lucide-users w-4 h-4 shrink-0"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><path d="M16 3.128a4 4 0 0 1 0 7.744"></path><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><circle cx="9" cy="7" r="4"></circle></svg>
+            <span class="sidebar-text truncate">Segments</span>
+          </a>
+          <!-- Item: Cohorts -->
+          <a href="#/cohorts" onclick="navigateTo('/cohorts'); return false;" id="nav-item-cohorts" class="nav-item flex items-center gap-3 h-10 px-3 rounded-[10px] text-sm font-medium transition-colors hover:bg-raised hover:text-foreground relative text-muted-foreground">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="grid-3x3" aria-hidden="true" class="lucide lucide-grid-3x3 w-4 h-4 shrink-0"><rect width="18" height="18" x="3" y="3" rx="2"></rect><path d="M3 9h18"></path><path d="M3 15h18"></path><path d="M9 3v18"></path><path d="M15 3v18"></path></svg>
+            <span class="sidebar-text truncate">Cohorts</span>
+          </a>
+          <!-- Item: Returns -->
+          <a href="#/returns" onclick="navigateTo('/returns'); return false;" id="nav-item-returns" class="nav-item flex items-center gap-3 h-10 px-3 rounded-[10px] text-sm font-medium transition-colors hover:bg-raised hover:text-foreground relative text-muted-foreground">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="undo-2" aria-hidden="true" class="lucide lucide-undo-2 w-4 h-4 shrink-0"><path d="M9 14 4 9l5-5"></path><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11"></path></svg>
+            <span class="sidebar-text truncate">Returns</span>
+          </a>
+          <!-- Item: Products -->
+          <a href="#/products" onclick="navigateTo('/products'); return false;" id="nav-item-products" class="nav-item flex items-center gap-3 h-10 px-3 rounded-[10px] text-sm font-medium transition-colors hover:bg-raised hover:text-foreground relative text-muted-foreground">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="package" aria-hidden="true" class="lucide lucide-package w-4 h-4 shrink-0"><path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"></path><path d="M12 22V12"></path><polyline points="3.29 7 12 12 20.71 7"></polyline><path d="m7.5 4.27 9 5.15"></path></svg>
+            <span class="sidebar-text truncate">Products</span>
+          </a>
+          <!-- Item: Anomalies -->
+          <a href="#/anomalies" onclick="navigateTo('/anomalies'); return false;" id="nav-item-anomalies" class="nav-item flex items-center gap-3 h-10 px-3 rounded-[10px] text-sm font-medium transition-colors hover:bg-raised hover:text-foreground relative text-muted-foreground">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="activity" aria-hidden="true" class="lucide lucide-activity w-4 h-4 shrink-0"><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"></path></svg>
+            <span class="sidebar-text truncate">Anomalies</span>
+          </a>
+          <!-- Item: Risk Score -->
+          <a href="#/risk" onclick="navigateTo('/risk'); return false;" id="nav-item-risk" class="nav-item flex items-center gap-3 h-10 px-3 rounded-[10px] text-sm font-medium transition-colors hover:bg-raised hover:text-foreground relative text-muted-foreground">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="shield-alert" aria-hidden="true" class="lucide lucide-shield-alert w-4 h-4 shrink-0"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"></path><path d="M12 8v4"></path><path d="M12 16h.01"></path></svg>
+            <span class="sidebar-text truncate">Risk Score</span>
+          </a>
+          <!-- Item: What-If -->
+          <a href="#/simulator" onclick="navigateTo('/simulator'); return false;" id="nav-item-simulator" class="nav-item flex items-center gap-3 h-10 px-3 rounded-[10px] text-sm font-medium transition-colors hover:bg-raised hover:text-foreground relative text-muted-foreground">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="sliders-horizontal" aria-hidden="true" class="lucide lucide-sliders-horizontal w-4 h-4 shrink-0"><path d="M10 5H3"></path><path d="M12 19H3"></path><path d="M14 3v4"></path><path d="M16 17v4"></path><path d="M21 12h-9"></path><path d="M21 19h-5"></path><path d="M21 5h-7"></path><path d="M8 10v4"></path><path d="M8 12H3"></path></svg>
+            <span class="sidebar-text truncate">What-If</span>
+          </a>
+
+          <!-- Divider -->
+          <div class="pt-2 pb-1">
+            <div class="h-px bg-border/60"></div>
+          </div>
+
+          <!-- Item: Pipeline -->
+          <a href="#/pipeline" onclick="navigateTo('/pipeline'); return false;" id="nav-item-pipeline" class="nav-item flex items-center gap-3 h-10 px-3 rounded-[10px] text-sm font-medium transition-colors text-muted-foreground hover:bg-raised hover:text-foreground relative">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="workflow" aria-hidden="true" class="lucide lucide-workflow w-4 h-4 shrink-0"><rect width="8" height="8" x="3" y="3" rx="2"></rect><path d="M7 11v4a2 2 0 0 0 2 2h4"></path><rect width="8" height="8" x="13" y="13" rx="2"></rect></svg>
+            <span class="sidebar-text truncate">Pipeline</span>
+          </a>
+          <!-- Item: Methodology -->
+          <a href="#/methodology" onclick="navigateTo('/methodology'); return false;" id="nav-item-methodology" class="nav-item flex items-center gap-3 h-10 px-3 rounded-[10px] text-sm font-medium transition-colors text-muted-foreground hover:bg-raised hover:text-foreground relative">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="book-open" aria-hidden="true" class="lucide lucide-book-open w-4 h-4 shrink-0"><path d="M12 5v16"></path><path d="M20.001 19A2 2 0 0022 17V5a2 2 0 00-1.999-2L16 3.002A5 5 0 0012 5a5 5 0 00-4-2H4a2 2 0 00-2 2v12a2 2 0 001.999 2H8a5 5 0 014 2 5 5 0 014-2z"></path></svg>
+            <span class="sidebar-text truncate">Methodology</span>
+          </a>
+          <!-- Item: ML Lab (Soon) -->
+          <a href="#/ml-lab" onclick="navigateTo('/ml-lab'); return false;" id="nav-item-mllab" class="nav-item flex items-center justify-between h-10 px-3 rounded-[10px] text-sm font-medium transition-colors text-muted-foreground/60 hover:bg-raised relative text-muted-foreground">
+            <div class="flex items-center gap-3 min-w-0">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="flask-conical" aria-hidden="true" class="lucide lucide-flask-conical w-4 h-4 shrink-0"><path d="M14 2v6a2 2 0 0 0 .245.96l5.51 10.08A2 2 0 0 1 18 22H6a2 2 0 0 1-1.755-2.96l5.51-10.08A2 2 0 0 0 10 8V2"></path><path d="M6.453 15h11.094"></path><path d="M8.5 2h7"></path></svg>
+              <span class="sidebar-text truncate">ML Lab</span>
+            </div>
+            <div class="sidebar-text flex items-center gap-1 bg-raised px-1.5 py-0.5 rounded text-[10px] text-faint border border-border">
+              <span class="">Soon</span>
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="lock" aria-hidden="true" class="lucide lucide-lock w-2.5 h-2.5"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            </div>
+          </a>
+        </nav>
+
+        <!-- Sidebar Footer Card -->
+        <div class="p-3 border-t border-border/40">
+          <div class="sidebar-footer-card p-3 rounded-xl bg-raised/70 border border-border/80 flex flex-col gap-1 text-xs">
+            <div class="flex items-center justify-between font-medium text-foreground truncate">
+              <span class="truncate">UCI Online Retail - Demo</span>
+              <span class="w-2 h-2 rounded-full bg-accent animate-pulse shrink-0 ml-1"></span>
+            </div>
+            <div class="text-[11px] text-muted-foreground num-tabular truncate">
+              4,334 customers · 399,659 rows
+            </div>
+          </div>
+          <!-- Collapse Button -->
+          <button onclick="toggleSidebar()" class="mt-2 w-full py-1.5 flex items-center justify-center rounded-lg hover:bg-raised text-muted-foreground transition-colors" title="Toggle Sidebar">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="chevron-left" aria-hidden="true" id="collapse-icon" class="lucide lucide-chevron-left w-4 h-4"><path d="m15 18-6-6 6-6"></path></svg>
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- MAIN WRAPPER -->
+    <div class="flex-1 flex flex-col h-full overflow-hidden min-w-0">
+      
+      <!-- TOP BAR (56px sticky) -->
+      <header class="h-14 shrink-0 bg-card/80 backdrop-blur border-b border-border px-6 flex items-center justify-between z-20">
+        <!-- Breadcrumbs -->
+        <div class="flex items-center gap-2 text-sm">
+          <span class="text-muted-foreground hover:text-foreground cursor-pointer" onclick="navigateTo('/')">SalesLens</span>
+          <span class="text-faint">/</span>
+          <span id="breadcrumb-current" class="font-medium text-foreground capitalize">Data Source</span>
+        </div>
+
+        <!-- Controls / Actions -->
+        <div class="flex items-center gap-3 text-sm">
+          <!-- Dataset select -->
+          <div class="hidden lg:flex items-center gap-2 bg-raised px-3 py-1.5 rounded-[10px] border border-border text-xs text-foreground cursor-default">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="database" aria-hidden="true" class="lucide lucide-database w-3.5 h-3.5 text-accent"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M3 5V19A9 3 0 0 0 21 19V5"></path><path d="M3 12A9 3 0 0 0 21 12"></path></svg>
+            <span class="font-medium">UCI Online Retail - Demo</span>
+          </div>
+
+          <!-- Date-range button -->
+          <button onclick="showToast('Date range selector')" class="hidden md:flex items-center gap-2 bg-raised/70 hover:bg-raised px-3 py-1.5 rounded-[10px] border border-border text-xs text-foreground transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="calendar" aria-hidden="true" class="lucide lucide-calendar w-3.5 h-3.5 text-muted-foreground"><path d="M8 2v3"></path><path d="M16 2v3"></path><rect x="3" y="3" width="18" height="18" rx="2"></rect><path d="M3 9h18"></path></svg>
+            <span class="num-tabular font-medium">01 Dec 2010 - 09 Dec 2011</span>
+          </button>
+
+          <!-- Segment multi-select popover trigger -->
+          <div class="relative">
+            <button onclick="toggleSegmentPopover()" id="segment-btn" class="flex items-center gap-2 bg-raised/70 hover:bg-raised px-3 py-1.5 rounded-[10px] border border-border text-xs text-foreground transition-colors">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="filter" aria-hidden="true" class="lucide lucide-filter w-3.5 h-3.5 text-muted-foreground"><path d="M10 20a1 1 0 0 0 .553.895l2 1A1 1 0 0 0 14 21v-7a2 2 0 0 1 .517-1.341L21.74 4.67A1 1 0 0 0 21 3H3a1 1 0 0 0-.742 1.67l7.225 7.989A2 2 0 0 1 10 14z"></path></svg>
+              <span id="segment-badge-text" class="font-medium">Segments (5/6)</span>
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="chevron-down" aria-hidden="true" class="lucide lucide-chevron-down w-3 h-3 text-faint"><path d="m6 9 6 6 6-6"></path></svg>
+            </button>
+            <!-- Dropdown Popover -->
+            <div id="segment-popover" class="absolute right-0 mt-2 w-56 bg-card border border-border rounded-xl shadow-xl p-3 z-50 text-xs space-y-2">
+              <div class="flex items-center justify-between pb-1.5 border-b border-border">
+                <span class="font-semibold text-foreground">Filter Segments</span>
+                <button onclick="selectAllSegments()" class="text-accent hover:underline text-[11px]">Select all</button>
+              </div>
+              <div class="space-y-1.5" id="segment-checkboxes"><label class="flex items-center gap-2 cursor-pointer text-foreground hover:text-accent">
+          <input type="checkbox" checked="" value="Promising" onchange="handleSegmentCheckbox(this)" class="rounded text-accent focus:ring-accent bg-raised border-border">
+          <span class="w-2 h-2 rounded-full" style="background-color: #38BDF8"></span>
+          <span class="">Promising</span>
+        </label><label class="flex items-center gap-2 cursor-pointer text-foreground hover:text-accent">
+          <input type="checkbox" checked="" value="Lost" onchange="handleSegmentCheckbox(this)" class="rounded text-accent focus:ring-accent bg-raised border-border">
+          <span class="w-2 h-2 rounded-full" style="background-color: #EF6B6B"></span>
+          <span class="">Lost</span>
+        </label><label class="flex items-center gap-2 cursor-pointer text-foreground hover:text-accent">
+          <input type="checkbox" checked="" value="Champion" onchange="handleSegmentCheckbox(this)" class="rounded text-accent focus:ring-accent bg-raised border-border">
+          <span class="w-2 h-2 rounded-full" style="background-color: #F5B83D"></span>
+          <span class="">Champion</span>
+        </label><label class="flex items-center gap-2 cursor-pointer text-foreground hover:text-accent">
+          <input type="checkbox" checked="" value="At-Risk" onchange="handleSegmentCheckbox(this)" class="rounded text-accent focus:ring-accent bg-raised border-border">
+          <span class="w-2 h-2 rounded-full" style="background-color: #FB923C"></span>
+          <span class="">At-Risk</span>
+        </label><label class="flex items-center gap-2 cursor-pointer text-foreground hover:text-accent">
+          <input type="checkbox" checked="" value="Loyal" onchange="handleSegmentCheckbox(this)" class="rounded text-accent focus:ring-accent bg-raised border-border">
+          <span class="w-2 h-2 rounded-full" style="background-color: #14B8A6"></span>
+          <span class="">Loyal</span>
+        </label><label class="flex items-center gap-2 cursor-pointer text-foreground hover:text-accent">
+          <input type="checkbox" checked="" value="New" onchange="handleSegmentCheckbox(this)" class="rounded text-accent focus:ring-accent bg-raised border-border">
+          <span class="w-2 h-2 rounded-full" style="background-color: #7AA2F7"></span>
+          <span class="">New</span>
+        </label></div>
+            </div>
+          </div>
+
+          <!-- Ctrl+K Search button -->
+          <button onclick="openCommandPalette()" class="hidden sm:flex items-center gap-2 bg-raised/70 hover:bg-raised px-3 py-1.5 rounded-[10px] border border-border text-xs text-muted-foreground transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="search" aria-hidden="true" class="lucide lucide-search w-3.5 h-3.5"><path d="m21 21-4.34-4.34"></path><circle cx="11" cy="11" r="8"></circle></svg>
+            <span class="">Search...</span>
+            <kbd class="text-[10px] bg-card px-1.5 py-0.5 rounded border border-border font-mono text-faint">Ctrl K</kbd>
+          </button>
+
+          <!-- Export dropdown -->
+          <div class="relative">
+            <button onclick="toggleExportMenu()" class="flex items-center gap-1.5 bg-raised/70 hover:bg-raised px-2.5 py-1.5 rounded-[10px] border border-border text-xs text-foreground transition-colors" title="Export Data">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="download" aria-hidden="true" class="lucide lucide-download w-3.5 h-3.5 text-muted-foreground"><path d="M12 15V3"></path><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><path d="m7 10 5 5 5-5"></path></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="chevron-down" aria-hidden="true" class="lucide lucide-chevron-down w-3 h-3 text-faint"><path d="m6 9 6 6 6-6"></path></svg>
+            </button>
+            <div id="export-dropdown" class="hidden absolute right-0 mt-2 w-44 bg-card border border-border rounded-xl shadow-xl p-1.5 z-50 text-xs">
+              <button onclick="triggerExport('CSV')" class="w-full text-left px-2.5 py-1.5 rounded hover:bg-raised text-foreground flex items-center justify-between">
+                <span class="">Export CSV</span>
+                <span class="text-[10px] text-faint">.csv</span>
+              </button>
+              <button onclick="triggerExport('PNG')" class="w-full text-left px-2.5 py-1.5 rounded hover:bg-raised text-foreground flex items-center justify-between">
+                <span class="">Export Image</span>
+                <span class="text-[10px] text-faint">.png</span>
+              </button>
+              <button onclick="triggerExport('PDF')" class="w-full text-left px-2.5 py-1.5 rounded hover:bg-raised text-foreground flex items-center justify-between">
+                <span class="">Export Report</span>
+                <span class="text-[10px] text-faint">.pdf</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Theme toggle -->
+          <button onclick="toggleTheme()" class="p-2 rounded-[10px] hover:bg-raised text-muted-foreground hover:text-foreground transition-colors" title="Toggle Dark/Light Mode">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="sun" aria-hidden="true" id="theme-icon" class="lucide lucide-sun w-4 h-4"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path></svg>
+          </button>
+
+          <!-- Help icon -->
+          <button onclick="showToast('SalesLens v1.0 • E-Commerce Analytics Suite')" class="p-2 rounded-[10px] hover:bg-raised text-muted-foreground hover:text-foreground transition-colors" title="Help &amp; Docs">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="help-circle" aria-hidden="true" class="lucide lucide-help-circle w-4 h-4"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><path d="M12 17h.01"></path></svg>
+          </button>
+        </div>
+      </header>
+
+      <!-- CONTENT SCROLL AREA -->
+      <main class="flex-1 overflow-y-auto p-4 sm:p-8" id="page-container">
+        
+        <!-- PAGE 1: DATA SOURCE ("/") -->
+        <div id="view-datasource" class="max-w-[1440px] mx-auto space-y-8 animate-fadeIn">
+          <!-- Hero Section -->
+          <div class="relative py-4 max-w-[640px]">
+            <!-- Background subtle glow & dot grid -->
+            <div class="absolute -top-10 -right-40 w-[600px] h-[400px] pointer-events-none rounded-full" style="background: radial-gradient(circle, rgba(20,184,166,0.14) 0%, transparent 70%);"></div>
+            
+            <h1 class="text-[36px] sm:text-[44px] leading-[1.15] font-semibold text-foreground tracking-tight">
+              See your customers <span class="accent-gradient-text">clearly.</span>
+            </h1>
+            <p class="text-[16px] text-muted-foreground mt-3 leading-relaxed">
+              Upload your retail data. SalesLens turns it into segments, retention, revenue leakage and risk scores — no black-box ML.
+            </p>
+          </div>
+
+          <!-- Three Equal Upload / Action Cards -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <!-- Card A: Upload Cleaned -->
+            <div class="sl-card p-6 flex flex-col justify-between relative group">
+              <div>
+                <div class="flex items-center justify-between mb-4">
+                  <div class="w-11 h-11 rounded-[10px] bg-accent/15 flex items-center justify-center text-accent">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="file-check-2" aria-hidden="true" class="lucide lucide-file-check-2 w-5 h-5"><path d="M10.5 22H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.706.706l3.588 3.588A2.4 2.4 0 0 1 20 8v6"></path><path d="M14 2v5a1 1 0 0 0 1 1h5"></path><path d="m14 20 2 2 4-4"></path></svg>
+                  </div>
+                  <span class="px-2.5 py-0.5 rounded-full text-xs font-medium bg-accent/20 text-accent border border-accent/30">Fastest</span>
+                </div>
+                <h3 class="text-[18px] font-semibold text-foreground">Upload cleaned data</h3>
+                <p class="text-sm text-muted-foreground mt-1 mb-4">Accepts pre-formatted .xlsx, .csv or .parquet files with standardized columns.</p>
+                
+                <!-- Dropzone A -->
+                <div onclick="simulateFileUpload('A')" class="h-[160px] rounded-xl border-[1.5px] border-dashed border-accent/40 hover:border-accent hover:bg-accent/[0.08] flex flex-col items-center justify-center cursor-pointer transition-all p-4 text-center group-hover:border-accent/70">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="upload" aria-hidden="true" class="lucide lucide-upload w-6 h-6 text-accent mb-2"><path d="M12 3v12"></path><path d="m17 8-5-5-5 5"></path><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path></svg>
+                  <span class="text-xs font-medium text-foreground">Drag &amp; drop or click to browse</span>
+                  <span class="text-[11px] text-faint mt-1">.xlsx, .csv, .parquet</span>
+                </div>
+              </div>
+              <div class="mt-4 pt-3 border-t border-border/60 text-xs text-faint">
+                Skips cleaning. Ready in seconds.
+              </div>
+            </div>
+
+            <!-- Card B: Upload Raw -->
+            <div class="sl-card p-6 flex flex-col justify-between relative group">
+              <div>
+                <div class="flex items-center justify-between mb-4">
+                  <div class="w-11 h-11 rounded-[10px] bg-accent/15 flex items-center justify-center text-accent">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="sparkles" aria-hidden="true" class="lucide lucide-sparkles w-5 h-5"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"></path><path d="M20 2v4"></path><path d="M22 4h-4"></path><circle cx="4" cy="20" r="2"></circle></svg>
+                  </div>
+                  <span class="px-2.5 py-0.5 rounded-full text-xs font-medium bg-accent-2/20 text-accent-2 border border-accent-2/30">Cleans automatically</span>
+                </div>
+                <h3 class="text-[18px] font-semibold text-foreground">Upload raw data</h3>
+                <p class="text-sm text-muted-foreground mt-1 mb-4">Accepts original UCI retail formats. Runs 12-stage cleaning pipeline.</p>
+                
+                <!-- Dropzone B -->
+                <div onclick="simulateFileUpload('B')" class="h-[160px] rounded-xl border-[1.5px] border-dashed border-accent/40 hover:border-accent hover:bg-accent/[0.08] flex flex-col items-center justify-center cursor-pointer transition-all p-4 text-center group-hover:border-accent/70">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="file-spreadsheet" aria-hidden="true" class="lucide lucide-file-spreadsheet w-6 h-6 text-accent-2 mb-2"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"></path><path d="M14 2v5a1 1 0 0 0 1 1h5"></path><path d="M8 13h2"></path><path d="M14 13h2"></path><path d="M8 17h2"></path><path d="M14 17h2"></path></svg>
+                  <span class="text-xs font-medium text-foreground">Drag &amp; drop raw UCI file</span>
+                  <span class="text-[11px] text-faint mt-1">original UCI .xlsx or .csv</span>
+                </div>
+              </div>
+              <div class="mt-4 pt-3 border-t border-border/60 text-xs text-faint">
+                Cleaning can take several minutes.
+              </div>
+            </div>
+
+            <!-- Card C: Try the Demo -->
+            <div class="sl-card p-6 flex flex-col justify-between relative">
+              <div>
+                <div class="flex items-center justify-between mb-4">
+                  <div class="w-11 h-11 rounded-[10px] bg-accent/15 flex items-center justify-center text-accent">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="play-circle" aria-hidden="true" class="lucide lucide-play-circle w-5 h-5"><path d="M9 9.003a1 1 0 0 1 1.517-.859l4.997 2.997a1 1 0 0 1 0 1.718l-4.997 2.997A1 1 0 0 1 9 14.996z"></path><circle cx="12" cy="12" r="10"></circle></svg>
+                  </div>
+                  <span class="px-2.5 py-0.5 rounded-full text-xs font-medium bg-positive/20 text-positive border border-positive/30">Instant</span>
+                </div>
+                <h3 class="text-[18px] font-semibold text-foreground">Try the demo</h3>
+                <p class="text-sm text-muted-foreground mt-1 mb-4">Pre-loaded with 4,334 UCI Online Retail customer profiles and transactions.</p>
+                
+                <!-- Mini Preview Box -->
+                <div class="h-[160px] rounded-xl bg-raised/70 border border-border p-3.5 flex flex-col justify-between">
+                  <div class="grid grid-cols-3 gap-2 text-center">
+                    <div class="bg-card/70 p-1.5 rounded-lg border border-border/60">
+                      <div class="text-[10px] uppercase text-faint">Customers</div>
+                      <div class="text-sm font-semibold num-tabular text-foreground">4,334</div>
+                    </div>
+                    <div class="bg-card/70 p-1.5 rounded-lg border border-border/60">
+                      <div class="text-[10px] uppercase text-faint">Revenue</div>
+                      <div class="text-sm font-semibold num-tabular text-foreground">£8.27M</div>
+                    </div>
+                    <div class="bg-card/70 p-1.5 rounded-lg border border-border/60">
+                      <div class="text-[10px] uppercase text-faint">Repeat</div>
+                      <div class="text-sm font-semibold num-tabular text-positive">65.3%</div>
+                    </div>
+                  </div>
+                  <!-- Mini sparkline representation -->
+                  <div class="h-12 w-full flex items-end gap-1 px-1 pt-2">
+                    <div class="flex-1 bg-accent/30 rounded-t h-[40%]"></div>
+                    <div class="flex-1 bg-accent/40 rounded-t h-[55%]"></div>
+                    <div class="flex-1 bg-accent/50 rounded-t h-[35%]"></div>
+                    <div class="flex-1 bg-accent/60 rounded-t h-[70%]"></div>
+                    <div class="flex-1 bg-accent/70 rounded-t h-[60%]"></div>
+                    <div class="flex-1 bg-accent/80 rounded-t h-[80%]"></div>
+                    <div class="flex-1 bg-accent rounded-t h-[100%]"></div>
+                  </div>
+                  <div class="text-[11px] text-faint flex items-center justify-between">
+                    <span class="">13 months tracked</span>
+                    <span class="text-positive font-medium">Verified Clean</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mt-4 pt-3 border-t border-border/60">
+                <button onclick="navigateTo('/overview')" class="w-full py-2.5 rounded-[10px] accent-gradient-bg text-white font-medium text-sm flex items-center justify-center gap-2 shadow-sm hover:opacity-95 transition-opacity">
+                  <span class="">Open demo</span>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="arrow-right" aria-hidden="true" class="lucide lucide-arrow-right w-4 h-4"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Dynamic Validation Panel (shown when simulated file uploaded) -->
+          <div id="validation-panel" class="hidden sl-card p-6 animate-fadeIn">
+            <div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 pb-5 border-b border-border/60">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-accent/20 flex items-center justify-center text-accent">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="file-check" aria-hidden="true" class="lucide lucide-file-check w-5 h-5"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"></path><path d="M14 2v5a1 1 0 0 0 1 1h5"></path><path d="m9 15 2 2 4-4"></path></svg>
+                </div>
+                <div>
+                  <h4 id="val-filename" class="font-semibold text-foreground text-base">uci_online_retail_cleaned.parquet</h4>
+                  <div class="text-xs text-muted-foreground flex gap-3 num-tabular mt-0.5">
+                    <span class="">42.8 MB</span>
+                    <span class="">•</span>
+                    <span class="">399,659 rows detected</span>
+                    <span class="">•</span>
+                    <span class="">4,334 customers</span>
+                  </div>
+                </div>
+              </div>
+              <button onclick="startAnalysisStepper()" id="btn-start-analysis" class="px-5 py-2.5 rounded-[10px] bg-accent hover:bg-accent-strong text-white font-medium text-sm flex items-center gap-2 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="play" aria-hidden="true" class="lucide lucide-play w-4 h-4"><path d="M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z"></path></svg>
+                <span class="">Start analysis</span>
+              </button>
+            </div>
+
+            <!-- Column Checklist -->
+            <div class="pt-5">
+              <div class="text-xs font-semibold uppercase tracking-wider text-faint mb-3">Schema validation checklist</div>
+              <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs" id="column-checklist">
+                <!-- Injected via JS based on A or B -->
+              </div>
+            </div>
+
+            <!-- Pipeline Stepper Card (Vertical) -->
+            <div id="stepper-container" class="hidden mt-6 pt-6 border-t border-border/60">
+              <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center gap-2">
+                  <span class="text-sm font-semibold text-foreground">Processing Pipeline</span>
+                  <span id="stepper-timer" class="text-xs num-tabular text-faint">Elapsed: 0.0s</span>
+                </div>
+                <div id="stepper-progress-text" class="text-xs font-mono text-accent">0%</div>
+              </div>
+              <!-- Overall Progress Bar -->
+              <div class="w-full h-1.5 bg-raised rounded-full overflow-hidden mb-6">
+                <div id="stepper-progress-bar" class="h-full bg-accent transition-all duration-300 w-0"></div>
+              </div>
+
+              <!-- Steps List -->
+              <div id="steps-list" class="space-y-2.5 max-h-[260px] overflow-y-auto pr-2">
+                <!-- Dynamically populated steps -->
+              </div>
+
+              <!-- Finished Actions -->
+              <div id="stepper-complete-actions" class="hidden mt-6 flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-border/60">
+                <div id="cleaning-banner" class="hidden text-xs text-muted-foreground flex items-center gap-2">
+                  <span class="">Cleaning complete! Download cleaned file:</span>
+                  <button onclick="showToast('Available when backend is connected')" class="px-2 py-1 bg-raised hover:bg-border rounded text-[11px] font-mono text-foreground border border-border">Parquet</button>
+                  <button onclick="showToast('Available when backend is connected')" class="px-2 py-1 bg-raised hover:bg-border rounded text-[11px] font-mono text-foreground border border-border">CSV</button>
+                  <button onclick="showToast('Available when backend is connected')" class="px-2 py-1 bg-raised hover:bg-border rounded text-[11px] font-mono text-foreground border border-border">XLSX</button>
+                </div>
+                <button onclick="navigateTo('/overview')" class="ml-auto px-6 py-2.5 rounded-[10px] accent-gradient-bg text-white font-medium text-sm flex items-center gap-2 shadow-sm">
+                  <span class="">Open dashboard</span>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="arrow-right" aria-hidden="true" class="lucide lucide-arrow-right w-4 h-4"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Recent Datasets DataTable -->
+          <div class="sl-card p-6">
+            <div class="flex items-center justify-between mb-4">
+              <div>
+                <h3 class="text-base font-semibold text-foreground">Recent datasets</h3>
+                <p class="text-xs text-muted-foreground">Previously inspected retail transaction datasets</p>
+              </div>
+              <div class="text-xs text-faint num-tabular">3 active stores</div>
+            </div>
+
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs">
+                <thead>
+                  <tr class="border-b border-border/80 text-faint font-medium">
+                    <th class="py-2.5 px-3">Dataset Name</th>
+                    <th class="py-2.5 px-3">Uploaded</th>
+                    <th class="py-2.5 px-3 text-right">Rows</th>
+                    <th class="py-2.5 px-3 text-center">Status</th>
+                    <th class="py-2.5 px-3 text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-border/40">
+                  <tr class="hover:bg-raised/40 transition-colors">
+                    <td class="py-3 px-3 font-medium text-foreground flex items-center gap-2">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="file-spreadsheet" aria-hidden="true" class="lucide lucide-file-spreadsheet w-4 h-4 text-accent"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"></path><path d="M14 2v5a1 1 0 0 0 1 1h5"></path><path d="M8 13h2"></path><path d="M14 13h2"></path><path d="M8 17h2"></path><path d="M14 17h2"></path></svg>
+                      <span class="">UCI Online Retail - Demo (Standard)</span>
+                    </td>
+                    <td class="py-3 px-3 text-muted-foreground num-tabular">Today, 09:41 AM</td>
+                    <td class="py-3 px-3 text-right text-foreground font-mono num-tabular">399,659</td>
+                    <td class="py-3 px-3 text-center">
+                      <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-positive/15 text-positive border border-positive/30">Processed</span>
+                    </td>
+                    <td class="py-3 px-3 text-right">
+                      <button onclick="navigateTo('/overview')" class="px-2.5 py-1 rounded bg-raised hover:bg-border text-foreground text-xs font-medium">Open</button>
+                    </td>
+                  </tr>
+                  <tr class="hover:bg-raised/40 transition-colors">
+                    <td class="py-3 px-3 font-medium text-foreground flex items-center gap-2">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="file-spreadsheet" aria-hidden="true" class="lucide lucide-file-spreadsheet w-4 h-4 text-faint"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"></path><path d="M14 2v5a1 1 0 0 0 1 1h5"></path><path d="M8 13h2"></path><path d="M14 13h2"></path><path d="M8 17h2"></path><path d="M14 17h2"></path></svg>
+                      <span class="">UK Retail Store Q3 Export</span>
+                    </td>
+                    <td class="py-3 px-3 text-muted-foreground num-tabular">18 Nov 2024</td>
+                    <td class="py-3 px-3 text-right text-foreground font-mono num-tabular">128,400</td>
+                    <td class="py-3 px-3 text-center">
+                      <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-positive/15 text-positive border border-positive/30">Processed</span>
+                    </td>
+                    <td class="py-3 px-3 text-right">
+                      <button onclick="showToast('Loading dataset archive...')" class="px-2.5 py-1 rounded bg-raised hover:bg-border text-foreground text-xs font-medium">Open</button>
+                    </td>
+                  </tr>
+                  <tr class="hover:bg-raised/40 transition-colors">
+                    <td class="py-3 px-3 font-medium text-foreground flex items-center gap-2">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="file-spreadsheet" aria-hidden="true" class="lucide lucide-file-spreadsheet w-4 h-4 text-faint"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"></path><path d="M14 2v5a1 1 0 0 0 1 1h5"></path><path d="M8 13h2"></path><path d="M14 13h2"></path><path d="M8 17h2"></path><path d="M14 17h2"></path></svg>
+                      <span class="">E-Commerce Fashion 2023 Cohort</span>
+                    </td>
+                    <td class="py-3 px-3 text-muted-foreground num-tabular">02 Oct 2024</td>
+                    <td class="py-3 px-3 text-right text-foreground font-mono num-tabular">84,912</td>
+                    <td class="py-3 px-3 text-center">
+                      <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-faint/15 text-muted-foreground border border-border">Archived</span>
+                    </td>
+                    <td class="py-3 px-3 text-right">
+                      <button onclick="showToast('Loading dataset archive...')" class="px-2.5 py-1 rounded bg-raised hover:bg-border text-foreground text-xs font-medium">Open</button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- PAGE 2: EXECUTIVE DASHBOARD ("/overview") -->
+        <div id="view-overview" class="max-w-[1440px] mx-auto space-y-6 animate-fadeIn hidden">
+          
+          <!-- SKELETON PLACEHOLDER (shown for 600ms on first load) -->
+          <div id="overview-skeleton" class="space-y-6 hidden">
+            <div class="h-10 w-72 skeleton rounded-xl"></div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+              <div class="h-28 skeleton rounded-card"></div>
+              <div class="h-28 skeleton rounded-card"></div>
+              <div class="h-28 skeleton rounded-card"></div>
+              <div class="h-28 skeleton rounded-card"></div>
+              <div class="h-28 skeleton rounded-card"></div>
+            </div>
+            <div class="grid grid-cols-12 gap-6">
+              <div class="col-span-12 lg:col-span-8 h-80 skeleton rounded-card"></div>
+              <div class="col-span-12 lg:col-span-4 h-80 skeleton rounded-card"></div>
+            </div>
+          </div>
+
+          <!-- ACTUAL CONTENT (revealed after 600ms) -->
+          <div id="overview-content" class="space-y-6">
+            <!-- Page Header -->
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h1 class="text-[28px] font-semibold text-foreground tracking-tight">Overview</h1>
+                <p class="text-sm text-muted-foreground mt-0.5">
+                  Champions are 20.7% of customers and returns cost 5.12% of revenue.
+                </p>
+              </div>
+              <div class="flex items-center gap-2">
+                <button onclick="triggerExport('PDF')" class="px-3 py-1.5 rounded-[10px] bg-raised hover:bg-border text-xs text-foreground font-medium flex items-center gap-1.5 border border-border transition-colors">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="file-text" aria-hidden="true" class="lucide lucide-file-text w-3.5 h-3.5"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"></path><path d="M14 2v5a1 1 0 0 0 1 1h5"></path><path d="M10 9H8"></path><path d="M16 13H8"></path><path d="M16 17H8"></path></svg>
+                  <span class="">Summary Report</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- ROW 1: FIVE KPI CARDS (grid 5 cols, 2 tablet, 1 mobile) -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+              <!-- KPI 1: Active Customers -->
+              <div class="sl-card p-4 relative group">
+                <div class="flex items-center justify-between text-muted-foreground text-xs uppercase tracking-wider font-medium">
+                  <span class="">Active Customers</span>
+                  <div class="relative group/tip cursor-help">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="info" aria-hidden="true" class="lucide lucide-info w-3.5 h-3.5 text-faint"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>
+                    <div class="hidden group-hover/tip:block absolute right-0 top-5 w-48 p-2 rounded-lg bg-card border border-border text-[11px] text-foreground z-30 shadow-xl lowercase first-letter:uppercase">
+                      customers whose segment is not Lost
+                    </div>
+                  </div>
+                </div>
+                <div class="text-[36px] leading-tight font-semibold text-foreground mt-2 num-tabular">
+                  3,362
+                </div>
+                <div class="flex items-center justify-between mt-2 pt-2 border-t border-border/40 text-xs">
+                  <span class="text-positive font-medium flex items-center gap-0.5">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="trending-up" aria-hidden="true" class="lucide lucide-trending-up w-3.5 h-3.5"><path d="M16 7h6v6"></path><path d="m22 7-8.5 8.5-5-5L2 17"></path></svg>
+                    +4.8%
+                  </span>
+                  <!-- Tiny 12-point sparkline -->
+                  <svg class="w-16 h-4 text-accent" viewBox="0 0 48 12" fill="none" stroke="currentColor" stroke-width="1.8">
+                    <polyline points="0,9 4,10 8,8 12,7 16,9 20,6 24,5 28,6 32,4 36,3 40,4 48,1"></polyline>
+                  </svg>
+                </div>
+              </div>
+
+              <!-- KPI 2: Repeat Rate -->
+              <div class="sl-card p-4 relative group">
+                <div class="flex items-center justify-between text-muted-foreground text-xs uppercase tracking-wider font-medium">
+                  <span class="">Repeat Rate</span>
+                  <div class="relative group/tip cursor-help">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="info" aria-hidden="true" class="lucide lucide-info w-3.5 h-3.5 text-faint"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>
+                    <div class="hidden group-hover/tip:block absolute right-0 top-5 w-44 p-2 rounded-lg bg-card border border-border text-[11px] text-foreground z-30 shadow-xl">
+                      Customers with 2+ orders
+                    </div>
+                  </div>
+                </div>
+                <div class="text-[36px] leading-tight font-semibold text-foreground mt-2 num-tabular">
+                  65.27%
+                </div>
+                <div class="flex items-center justify-between mt-2 pt-2 border-t border-border/40 text-xs">
+                  <span class="text-positive font-medium flex items-center gap-0.5">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="trending-up" aria-hidden="true" class="lucide lucide-trending-up w-3.5 h-3.5"><path d="M16 7h6v6"></path><path d="m22 7-8.5 8.5-5-5L2 17"></path></svg>
+                    +1.2%
+                  </span>
+                  <svg class="w-16 h-4 text-accent" viewBox="0 0 48 12" fill="none" stroke="currentColor" stroke-width="1.8">
+                    <polyline points="0,8 4,7 8,9 12,6 16,5 20,6 24,4 28,5 32,3 36,4 40,2 48,2"></polyline>
+                  </svg>
+                </div>
+              </div>
+
+              <!-- KPI 3: Churn Rate -->
+              <div class="sl-card p-4 relative group">
+                <div class="flex items-center justify-between text-muted-foreground text-xs uppercase tracking-wider font-medium">
+                  <div class="flex items-center gap-1.5">
+                    <span class="">Churn Rate</span>
+                    <span class="px-1.5 py-0.2 rounded-full text-[10px] bg-warning/20 text-warning border border-warning/30 font-medium">Indicative</span>
+                  </div>
+                  <div class="relative group/tip cursor-help">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="info" aria-hidden="true" class="lucide lucide-info w-3.5 h-3.5 text-faint"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>
+                    <div class="hidden group-hover/tip:block absolute right-0 top-5 w-48 p-2 rounded-lg bg-card border border-border text-[11px] text-foreground z-30 shadow-xl">
+                      Based on one partial calendar month
+                    </div>
+                  </div>
+                </div>
+                <div class="text-[36px] leading-tight font-semibold text-foreground mt-2 num-tabular">
+                  88.52%
+                </div>
+                <div class="flex items-center justify-between mt-2 pt-2 border-t border-border/40 text-xs">
+                  <span class="text-[12px] text-faint">Lost segment: 22.4%</span>
+                  <svg class="w-16 h-4 text-warning" viewBox="0 0 48 12" fill="none" stroke="currentColor" stroke-width="1.8">
+                    <polyline points="0,3 4,4 8,2 12,5 16,4 20,6 24,5 28,7 32,8 36,9 40,8 48,10"></polyline>
+                  </svg>
+                </div>
+              </div>
+
+              <!-- KPI 4: Revenue Retention -->
+              <div class="sl-card p-4 relative group">
+                <div class="flex items-center justify-between text-muted-foreground text-xs uppercase tracking-wider font-medium">
+                  <span class="">Rev. Retention</span>
+                  <div class="relative group/tip cursor-help">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="info" aria-hidden="true" class="lucide lucide-info w-3.5 h-3.5 text-faint"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>
+                    <div class="hidden group-hover/tip:block absolute right-0 top-5 w-52 p-2 rounded-lg bg-card border border-border text-[11px] text-foreground z-30 shadow-xl">
+                      Average cohort revenue after month 0
+                    </div>
+                  </div>
+                </div>
+                <div class="text-[36px] leading-tight font-semibold text-foreground mt-2 num-tabular">
+                  29.79%
+                </div>
+                <div class="flex items-center justify-between mt-2 pt-2 border-t border-border/40 text-xs">
+                  <span class="text-muted-foreground font-medium">Dec 10 - Dec 11</span>
+                  <svg class="w-16 h-4 text-accent-2" viewBox="0 0 48 12" fill="none" stroke="currentColor" stroke-width="1.8">
+                    <polyline points="0,11 4,4 8,5 12,6 16,5 20,7 24,6 28,5 32,6 36,4 40,5 48,4"></polyline>
+                  </svg>
+                </div>
+              </div>
+
+              <!-- KPI 5: Net Revenue After Returns -->
+              <div class="sl-card p-4 relative group">
+                <div class="flex items-center justify-between text-muted-foreground text-xs uppercase tracking-wider font-medium">
+                  <span class="">Net Revenue</span>
+                  <div class="relative group/tip cursor-help">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="info" aria-hidden="true" class="lucide lucide-info w-3.5 h-3.5 text-faint"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>
+                    <div class="hidden group-hover/tip:block absolute right-0 top-5 w-48 p-2 rounded-lg bg-card border border-border text-[11px] text-foreground z-30 shadow-xl font-mono">
+                      GBP 8,265,476.93
+                    </div>
+                  </div>
+                </div>
+                <div class="text-[36px] leading-tight font-semibold text-foreground mt-2 num-tabular flex items-baseline gap-1">
+                  <span class="text-xl text-accent font-mono">£</span>8.27M
+                </div>
+                <div class="flex items-center justify-between mt-2 pt-2 border-t border-border/40 text-xs">
+                  <span class="text-positive font-medium flex items-center gap-0.5">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="trending-up" aria-hidden="true" class="lucide lucide-trending-up w-3.5 h-3.5"><path d="M16 7h6v6"></path><path d="m22 7-8.5 8.5-5-5L2 17"></path></svg>
+                    +14.2% YoY
+                  </span>
+                  <svg class="w-16 h-4 text-positive" viewBox="0 0 48 12" fill="none" stroke="currentColor" stroke-width="1.8">
+                    <polyline points="0,10 4,9 8,11 12,7 16,8 20,6 24,5 28,5 32,4 36,2 40,1 48,1"></polyline>
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            <!-- ROW 2: MONTHLY SALES & RETURNS (8 cols) + SEGMENT MIX (4 cols) -->
+            <div class="grid grid-cols-12 gap-6">
+              
+              <!-- Chart 1: Monthly Sales & Returns Composed Chart (8 cols) -->
+              <div class="col-span-12 lg:col-span-8 sl-card p-6 flex flex-col justify-between">
+                <div class="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 class="text-base font-semibold text-foreground">Monthly sales and returns</h3>
+                    <p class="text-xs text-muted-foreground">Dec 2010 to Dec 2011 • Sales vs Returns in GBP (k)</p>
+                  </div>
+                  <!-- Chart legend & tools -->
+                  <div class="flex items-center gap-4 text-xs">
+                    <div class="flex items-center gap-1.5">
+                      <span class="w-2.5 h-2.5 rounded-sm bg-[#14B8A6]"></span>
+                      <span class="text-muted-foreground">Sales</span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                      <span class="w-2.5 h-2.5 rounded-sm bg-[#F87171]"></span>
+                      <span class="text-muted-foreground">Returns</span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                      <span class="w-3 h-0.5 bg-[#38BDF8]"></span>
+                      <span class="text-muted-foreground">Return %</span>
+                    </div>
+                    <button onclick="showToast('Chart fullscreen view')" class="text-faint hover:text-foreground">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="maximize-2" aria-hidden="true" class="lucide lucide-maximize-2 w-3.5 h-3.5"><path d="M15 3h6v6"></path><path d="m21 3-7 7"></path><path d="m3 21 7-7"></path><path d="M9 21H3v-6"></path></svg>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- High-fidelity SVG ComposedChart (Dec 2010 - Dec 2011) -->
+                <div class="relative w-full h-[240px]">
+                  <svg class="w-full h-full" viewBox="0 0 760 220" preserveAspectRatio="none">
+                    <!-- Horizontal grid lines only at 6% opacity -->
+                    <line x1="40" y1="20" x2="740" y2="20" stroke="currentColor" stroke-opacity="0.06" stroke-dasharray="3,3"></line>
+                    <line x1="40" y1="65" x2="740" y2="65" stroke="currentColor" stroke-opacity="0.06" stroke-dasharray="3,3"></line>
+                    <line x1="40" y1="110" x2="740" y2="110" stroke="currentColor" stroke-opacity="0.06" stroke-dasharray="3,3"></line>
+                    <line x1="40" y1="155" x2="740" y2="155" stroke="currentColor" stroke-opacity="0.06" stroke-dasharray="3,3"></line>
+                    <line x1="40" y1="200" x2="740" y2="200" stroke="currentColor" stroke-opacity="0.1"></line>
+
+                    <!-- Axis labels (Y) -->
+                    <text x="32" y="24" fill="currentColor" opacity="0.4" font-size="10" text-anchor="end" font-family="JetBrains Mono">1.4M</text>
+                    <text x="32" y="69" fill="currentColor" opacity="0.4" font-size="10" text-anchor="end" font-family="JetBrains Mono">1.0M</text>
+                    <text x="32" y="114" fill="currentColor" opacity="0.4" font-size="10" text-anchor="end" font-family="JetBrains Mono">600k</text>
+                    <text x="32" y="159" fill="currentColor" opacity="0.4" font-size="10" text-anchor="end" font-family="JetBrains Mono">200k</text>
+
+                    <!-- Right Axis (Return Rate %) -->
+                    <text x="748" y="24" fill="#38BDF8" opacity="0.8" font-size="10" text-anchor="start" font-family="JetBrains Mono">8%</text>
+                    <text x="748" y="114" fill="#38BDF8" opacity="0.8" font-size="10" text-anchor="start" font-family="JetBrains Mono">4%</text>
+                    <text x="748" y="200" fill="#38BDF8" opacity="0.8" font-size="10" text-anchor="start" font-family="JetBrains Mono">0%</text>
+
+                    <!-- 13 Months data: [510, 490, 450, 650, 560, 620, 640, 640, 660, 900, 950, 1330, 330] -->
+                    <!-- Each cluster: bar sales (teal), bar returns (red side-by-side with 4px rounded top) -->
+                    <g transform="translate(60, 0)">
+                      <!-- Month 1: Dec 10 (sales 510, ret 28) -->
+                      <rect x="0" y="125" width="16" height="75" rx="4" fill="#14B8A6"></rect>
+                      <rect x="18" y="190" width="10" height="10" rx="3" fill="#F87171"></rect>
+                      <text x="14" y="214" fill="currentColor" opacity="0.5" font-size="10" text-anchor="middle">Dec</text>
+
+                      <!-- Month 2: Jan 11 (sales 490, ret 26) -->
+                      <rect x="52" y="128" width="16" height="72" rx="4" fill="#14B8A6"></rect>
+                      <rect x="70" y="191" width="10" height="9" rx="3" fill="#F87171"></rect>
+                      <text x="66" y="214" fill="currentColor" opacity="0.5" font-size="10" text-anchor="middle">Jan</text>
+
+                      <!-- Month 3: Feb 11 (sales 450, ret 24) -->
+                      <rect x="104" y="134" width="16" height="66" rx="4" fill="#14B8A6"></rect>
+                      <rect x="122" y="192" width="10" height="8" rx="3" fill="#F87171"></rect>
+                      <text x="118" y="214" fill="currentColor" opacity="0.5" font-size="10" text-anchor="middle">Feb</text>
+
+                      <!-- Month 4: Mar 11 (sales 650, ret 35) -->
+                      <rect x="156" y="105" width="16" height="95" rx="4" fill="#14B8A6"></rect>
+                      <rect x="174" y="188" width="10" height="12" rx="3" fill="#F87171"></rect>
+                      <text x="170" y="214" fill="currentColor" opacity="0.5" font-size="10" text-anchor="middle">Mar</text>
+
+                      <!-- Month 5: Apr 11 (sales 560, ret 30) -->
+                      <rect x="208" y="118" width="16" height="82" rx="4" fill="#14B8A6"></rect>
+                      <rect x="226" y="189" width="10" height="11" rx="3" fill="#F87171"></rect>
+                      <text x="222" y="214" fill="currentColor" opacity="0.5" font-size="10" text-anchor="middle">Apr</text>
+
+                      <!-- Month 6: May 11 (sales 620, ret 33) -->
+                      <rect x="260" y="109" width="16" height="91" rx="4" fill="#14B8A6"></rect>
+                      <rect x="278" y="188" width="10" height="12" rx="3" fill="#F87171"></rect>
+                      <text x="274" y="214" fill="currentColor" opacity="0.5" font-size="10" text-anchor="middle">May</text>
+
+                      <!-- Month 7: Jun 11 (sales 640, ret 35) -->
+                      <rect x="312" y="106" width="16" height="94" rx="4" fill="#14B8A6"></rect>
+                      <rect x="330" y="187" width="10" height="13" rx="3" fill="#F87171"></rect>
+                      <text x="326" y="214" fill="currentColor" opacity="0.5" font-size="10" text-anchor="middle">Jun</text>
+
+                      <!-- Month 8: Jul 11 (sales 640, ret 34) -->
+                      <rect x="364" y="106" width="16" height="94" rx="4" fill="#14B8A6"></rect>
+                      <rect x="382" y="187" width="10" height="13" rx="3" fill="#F87171"></rect>
+                      <text x="378" y="214" fill="currentColor" opacity="0.5" font-size="10" text-anchor="middle">Jul</text>
+
+                      <!-- Month 9: Aug 11 (sales 660, ret 36) -->
+                      <rect x="416" y="103" width="16" height="97" rx="4" fill="#14B8A6"></rect>
+                      <rect x="434" y="187" width="10" height="13" rx="3" fill="#F87171"></rect>
+                      <text x="430" y="214" fill="currentColor" opacity="0.5" font-size="10" text-anchor="middle">Aug</text>
+
+                      <!-- Month 10: Sep 11 (sales 900, ret 48) -->
+                      <rect x="468" y="68" width="16" height="132" rx="4" fill="#14B8A6"></rect>
+                      <rect x="486" y="182" width="10" height="18" rx="3" fill="#F87171"></rect>
+                      <text x="482" y="214" fill="currentColor" opacity="0.5" font-size="10" text-anchor="middle">Sep</text>
+
+                      <!-- Month 11: Oct 11 (sales 950, ret 52) -->
+                      <rect x="520" y="61" width="16" height="139" rx="4" fill="#14B8A6"></rect>
+                      <rect x="538" y="180" width="10" height="20" rx="3" fill="#F87171"></rect>
+                      <text x="534" y="214" fill="currentColor" opacity="0.5" font-size="10" text-anchor="middle">Oct</text>
+
+                      <!-- Month 12: Nov 11 (sales 1330, ret 72) -->
+                      <rect x="572" y="20" width="16" height="180" rx="4" fill="#14B8A6"></rect>
+                      <rect x="590" y="172" width="10" height="28" rx="3" fill="#F87171"></rect>
+                      <text x="586" y="214" fill="currentColor" opacity="0.5" font-size="10" text-anchor="middle">Nov</text>
+
+                      <!-- Month 13: Dec 11 partial (sales 330, ret 18) -->
+                      <rect x="624" y="152" width="16" height="48" rx="4" fill="#14B8A6" opacity="0.75"></rect>
+                      <rect x="642" y="193" width="10" height="7" rx="3" fill="#F87171"></rect>
+                      <text x="638" y="214" fill="currentColor" opacity="0.5" font-size="10" text-anchor="middle">Dec*</text>
+
+                      <!-- Return Rate Line (Sky Blue #38BDF8) -->
+                      <path d="M 14,80 L 66,82 L 118,85 L 170,78 L 222,81 L 274,79 L 326,77 L 378,79 L 430,76 L 482,73 L 534,71 L 586,68 L 638,82" fill="none" stroke="#38BDF8" stroke-width="2.5"></path>
+                      <!-- Data points on line -->
+                      <circle cx="14" cy="80" r="3" fill="#0C1D24" stroke="#38BDF8" stroke-width="2"></circle>
+                      <circle cx="66" cy="82" r="3" fill="#0C1D24" stroke="#38BDF8" stroke-width="2"></circle>
+                      <circle cx="118" cy="85" r="3" fill="#0C1D24" stroke="#38BDF8" stroke-width="2"></circle>
+                      <circle cx="170" cy="78" r="3" fill="#0C1D24" stroke="#38BDF8" stroke-width="2"></circle>
+                      <circle cx="222" cy="81" r="3" fill="#0C1D24" stroke="#38BDF8" stroke-width="2"></circle>
+                      <circle cx="274" cy="79" r="3" fill="#0C1D24" stroke="#38BDF8" stroke-width="2"></circle>
+                      <circle cx="326" cy="77" r="3" fill="#0C1D24" stroke="#38BDF8" stroke-width="2"></circle>
+                      <circle cx="378" cy="79" r="3" fill="#0C1D24" stroke="#38BDF8" stroke-width="2"></circle>
+                      <circle cx="430" cy="76" r="3" fill="#0C1D24" stroke="#38BDF8" stroke-width="2"></circle>
+                      <circle cx="482" cy="73" r="3" fill="#0C1D24" stroke="#38BDF8" stroke-width="2"></circle>
+                      <circle cx="534" cy="71" r="3" fill="#0C1D24" stroke="#38BDF8" stroke-width="2"></circle>
+                      <circle cx="586" cy="68" r="3" fill="#0C1D24" stroke="#38BDF8" stroke-width="2"></circle>
+                      <circle cx="638" cy="82" r="3" fill="#0C1D24" stroke="#38BDF8" stroke-width="2"></circle>
+                    </g>
+                  </svg>
+                </div>
+
+                <!-- Brush slider zoom simulator -->
+                <div class="mt-3 pt-3 border-t border-border/40 flex items-center justify-between text-xs text-faint">
+                  <span class="flex items-center gap-1.5">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="sliders" aria-hidden="true" class="lucide lucide-sliders w-3.5 h-3.5"><path d="M10 8h4"></path><path d="M12 21v-9"></path><path d="M12 8V3"></path><path d="M17 16h4"></path><path d="M19 12V3"></path><path d="M19 21v-5"></path><path d="M3 14h4"></path><path d="M5 10V3"></path><path d="M5 21v-7"></path></svg>
+                    <span class="">Timeline Brush (Zoom 13 Months)</span>
+                  </span>
+                  <div class="w-48 h-3 bg-raised rounded border border-border relative flex items-center px-1">
+                    <div class="w-full h-1.5 bg-accent/40 rounded"></div>
+                    <div class="absolute left-1 w-2 h-2.5 bg-accent rounded-sm cursor-ew-resize"></div>
+                    <div class="absolute right-1 w-2 h-2.5 bg-accent rounded-sm cursor-ew-resize"></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Chart 2: Segment Mix Donut (4 cols) -->
+              <div class="col-span-12 lg:col-span-4 sl-card p-6 flex flex-col justify-between">
+                <div class="flex items-center justify-between mb-2">
+                  <h3 class="text-base font-semibold text-foreground">Segment mix</h3>
+                  <div class="relative group/tip cursor-help">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="info" aria-hidden="true" class="lucide lucide-info w-3.5 h-3.5 text-faint"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>
+                    <div class="hidden group-hover/tip:block absolute right-0 top-5 w-44 p-2 rounded-lg bg-card border border-border text-[11px] text-foreground z-30 shadow-xl">
+                      Click slices or rows to filter global dashboard
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Donut Chart with innerRadius 70% and centre text -->
+                <div class="relative flex items-center justify-center my-2">
+                  <svg class="w-44 h-44 -rotate-90" viewBox="0 0 100 100">
+                    <!-- Donut segments total circumference 2 * PI * 35 = ~219.9 -->
+                    <!-- Promising (1078, 24.8%): stroke-dasharray="54.5 165.4" -->
+                    <circle cx="50" cy="50" r="35" fill="transparent" stroke="#38BDF8" stroke-width="12" stroke-dasharray="54.5 165.4" stroke-dashoffset="0" class="hover:opacity-80 cursor-pointer transition-opacity" onclick="toggleSegmentFilter('Promising')"></circle>
+                    <!-- Lost (972, 22.4%): stroke-dasharray="49.2 170.7" -->
+                    <circle cx="50" cy="50" r="35" fill="transparent" stroke="#EF6B6B" stroke-width="12" stroke-dasharray="49.2 170.7" stroke-dashoffset="-54.5" class="hover:opacity-80 cursor-pointer transition-opacity" onclick="toggleSegmentFilter('Lost')"></circle>
+                    <!-- Champion (897, 20.7%): stroke-dasharray="45.5 174.4" -->
+                    <circle cx="50" cy="50" r="35" fill="transparent" stroke="#F5B83D" stroke-width="12" stroke-dasharray="45.5 174.4" stroke-dashoffset="-103.7" class="hover:opacity-80 cursor-pointer transition-opacity" onclick="toggleSegmentFilter('Champion')"></circle>
+                    <!-- At-Risk (763, 17.6%): stroke-dasharray="38.7 181.2" -->
+                    <circle cx="50" cy="50" r="35" fill="transparent" stroke="#FB923C" stroke-width="12" stroke-dasharray="38.7 181.2" stroke-dashoffset="-149.2" class="hover:opacity-80 cursor-pointer transition-opacity" onclick="toggleSegmentFilter('At-Risk')"></circle>
+                    <!-- Loyal (390, 9.0%): stroke-dasharray="19.8 200.1" -->
+                    <circle cx="50" cy="50" r="35" fill="transparent" stroke="#14B8A6" stroke-width="12" stroke-dasharray="19.8 200.1" stroke-dashoffset="-187.9" class="hover:opacity-80 cursor-pointer transition-opacity" onclick="toggleSegmentFilter('Loyal')"></circle>
+                    <!-- New (234, 5.4%): stroke-dasharray="11.9 208" -->
+                    <circle cx="50" cy="50" r="35" fill="transparent" stroke="#7AA2F7" stroke-width="12" stroke-dasharray="11.9 208" stroke-dashoffset="-207.7" class="hover:opacity-80 cursor-pointer transition-opacity" onclick="toggleSegmentFilter('New')"></circle>
+                  </svg>
+                  <!-- Centre Text -->
+                  <div class="absolute inset-0 flex flex-col items-center justify-center text-center pointer-events-none">
+                    <span class="text-xl font-bold text-foreground num-tabular leading-none">4,334</span>
+                    <span class="text-[11px] text-muted-foreground mt-0.5">customers</span>
+                  </div>
+                </div>
+
+                <!-- Legend Rows with counts and % -->
+                <div class="space-y-1 text-xs mt-2" id="donut-legend-rows">
+                  <div onclick="toggleSegmentFilter('Champion')" class="flex items-center justify-between p-1 rounded hover:bg-raised/50 cursor-pointer">
+                    <div class="flex items-center gap-2">
+                      <span class="w-2.5 h-2.5 rounded-full bg-[#F5B83D]"></span>
+                      <span class="text-foreground">Champion</span>
+                    </div>
+                    <div class="text-right num-tabular text-muted-foreground font-mono">
+                      <span class="">897</span> <span class="text-faint text-[10px] ml-1">(20.7%)</span>
+                    </div>
+                  </div>
+                  <div onclick="toggleSegmentFilter('Loyal')" class="flex items-center justify-between p-1 rounded hover:bg-raised/50 cursor-pointer">
+                    <div class="flex items-center gap-2">
+                      <span class="w-2.5 h-2.5 rounded-full bg-[#14B8A6]"></span>
+                      <span class="text-foreground">Loyal</span>
+                    </div>
+                    <div class="text-right num-tabular text-muted-foreground font-mono">
+                      <span class="">390</span> <span class="text-faint text-[10px] ml-1">(9.0%)</span>
+                    </div>
+                  </div>
+                  <div onclick="toggleSegmentFilter('Promising')" class="flex items-center justify-between p-1 rounded hover:bg-raised/50 cursor-pointer">
+                    <div class="flex items-center gap-2">
+                      <span class="w-2.5 h-2.5 rounded-full bg-[#38BDF8]"></span>
+                      <span class="text-foreground">Promising</span>
+                    </div>
+                    <div class="text-right num-tabular text-muted-foreground font-mono">
+                      <span class="">1,078</span> <span class="text-faint text-[10px] ml-1">(24.8%)</span>
+                    </div>
+                  </div>
+                  <div onclick="toggleSegmentFilter('New')" class="flex items-center justify-between p-1 rounded hover:bg-raised/50 cursor-pointer">
+                    <div class="flex items-center gap-2">
+                      <span class="w-2.5 h-2.5 rounded-full bg-[#7AA2F7]"></span>
+                      <span class="text-foreground">New</span>
+                    </div>
+                    <div class="text-right num-tabular text-muted-foreground font-mono">
+                      <span class="">234</span> <span class="text-faint text-[10px] ml-1">(5.4%)</span>
+                    </div>
+                  </div>
+                  <div onclick="toggleSegmentFilter('At-Risk')" class="flex items-center justify-between p-1 rounded hover:bg-raised/50 cursor-pointer">
+                    <div class="flex items-center gap-2">
+                      <span class="w-2.5 h-2.5 rounded-full bg-[#FB923C]"></span>
+                      <span class="text-foreground">At-Risk</span>
+                    </div>
+                    <div class="text-right num-tabular text-muted-foreground font-mono">
+                      <span class="">763</span> <span class="text-faint text-[10px] ml-1">(17.6%)</span>
+                    </div>
+                  </div>
+                  <div onclick="toggleSegmentFilter('Lost')" class="flex items-center justify-between p-1 rounded hover:bg-raised/50 cursor-pointer">
+                    <div class="flex items-center gap-2">
+                      <span class="w-2.5 h-2.5 rounded-full bg-[#EF6B6B]"></span>
+                      <span class="text-foreground">Lost</span>
+                    </div>
+                    <div class="text-right num-tabular text-muted-foreground font-mono">
+                      <span class="">972</span> <span class="text-faint text-[10px] ml-1">(22.4%)</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- ROW 3: REVENUE LEAKAGE WATERFALL (6 cols) + HIGHEST RISK CUSTOMERS (6 cols) -->
+            <div class="grid grid-cols-12 gap-6">
+              <!-- Waterfall Chart -->
+              <div class="col-span-12 lg:col-span-6 sl-card p-6 flex flex-col justify-between">
+                <div class="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 class="text-base font-semibold text-foreground">Revenue leakage</h3>
+                    <p class="text-xs text-muted-foreground">Waterfall breakdown from Gross Sales to Net Revenue</p>
+                  </div>
+                  <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-negative/20 text-negative border border-negative/30">
+                    5.12% leakage
+                  </span>
+                </div>
+
+                <!-- Waterfall visualization -->
+                <div class="relative w-full h-[200px] flex items-end justify-around pb-6 pt-4 border-b border-border/40">
+                  <!-- Bar 1: Gross Sales GBP 8.74M (Teal) -->
+                  <div class="flex flex-col items-center gap-2 w-24">
+                    <span class="text-xs font-semibold num-tabular font-mono text-accent">£8.74M</span>
+                    <div class="w-16 h-36 bg-[#14B8A6] rounded-t-lg shadow-sm"></div>
+                    <span class="text-xs font-medium text-foreground text-center">Gross Sales</span>
+                  </div>
+
+                  <!-- Connector line -->
+                  <div class="w-8 border-t border-dashed border-border/80 self-center mb-8"></div>
+
+                  <!-- Bar 2: Returns & Cancellations -0.47M (Red floating) -->
+                  <div class="flex flex-col items-center gap-2 w-28">
+                    <span class="text-xs font-semibold num-tabular font-mono text-negative">-£0.47M</span>
+                    <!-- Transparent spacer + red bar -->
+                    <div class="w-16 flex flex-col justify-end h-36">
+                      <div class="h-10 bg-[#F87171] rounded-lg shadow-sm"></div>
+                      <div class="h-26"></div>
+                    </div>
+                    <span class="text-xs font-medium text-negative text-center">Returns</span>
+                  </div>
+
+                  <!-- Connector line -->
+                  <div class="w-8 border-t border-dashed border-border/80 self-center mb-8"></div>
+
+                  <!-- Bar 3: Net Revenue GBP 8.27M (Sky Blue) -->
+                  <div class="flex flex-col items-center gap-2 w-24">
+                    <span class="text-xs font-semibold num-tabular font-mono text-[#0EA5E9]">£8.27M</span>
+                    <div class="w-16 h-32 bg-[#0EA5E9] rounded-t-lg shadow-sm"></div>
+                    <span class="text-xs font-medium text-foreground text-center">Net Revenue</span>
+                  </div>
+                </div>
+
+                <div class="pt-3 text-xs text-faint flex items-center justify-between">
+                  <span class="">Gross £8,736,000 → Net £8,265,476</span>
+                  <span class="text-positive font-medium">94.88% Retained</span>
+                </div>
+              </div>
+
+              <!-- Highest-Risk Customers Table -->
+              <div class="col-span-12 lg:col-span-6 sl-card p-6 flex flex-col justify-between">
+                <div class="flex items-center justify-between mb-3">
+                  <div>
+                    <h3 class="text-base font-semibold text-foreground">Highest-risk customers</h3>
+                    <p class="text-xs text-muted-foreground">Top accounts flagged by RFM decay and return velocity</p>
+                  </div>
+                  <a href="#/risk" onclick="navigateTo('/risk'); return false;" class="text-xs text-accent hover:underline font-medium flex items-center gap-1">
+                    <span class="">View all</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="arrow-right" aria-hidden="true" class="lucide lucide-arrow-right w-3 h-3"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg>
+                  </a>
+                </div>
+
+                <div class="overflow-x-auto flex-1">
+                  <table class="w-full text-left text-xs">
+                    <thead>
+                      <tr class="border-b border-border/80 text-faint font-medium">
+                        <th class="py-1.5 px-2">ID</th>
+                        <th class="py-1.5 px-2">Segment</th>
+                        <th class="py-1.5 px-2">Risk Band</th>
+                        <th class="py-1.5 px-2 text-right">Score</th>
+                      </tr>
+                    </thead>
+                    <tbody class="divide-y divide-border/30" id="highest-risk-rows"><tr class="hover:bg-raised/40 transition-colors cursor-pointer group">
+          <td class="py-2 px-2 font-mono text-foreground font-medium group-hover:text-accent">#13533</td>
+          <td class="py-2 px-2">
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] bg-raised border border-border">
+              <span class="w-1.5 h-1.5 rounded-full" style="background-color: #FB923C"></span>
+              <span class="">At-Risk</span>
+            </span>
+          </td>
+          <td class="py-2 px-2">
+            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium" style="background-color: #EF444420; color: #EF4444; border: 1px solid #EF444440">
+              Critical
+            </span>
+          </td>
+          <td class="py-2 px-2 text-right font-mono font-medium text-foreground">
+            <div class="flex items-center justify-end gap-2">
+              <div class="w-12 h-1.5 bg-raised rounded-full overflow-hidden">
+                <div class="h-full rounded-full" style="width: 66%; background-color: #EF4444"></div>
+              </div>
+              <span class="">66.0</span>
+            </div>
+          </td>
+        </tr><tr class="hover:bg-raised/40 transition-colors cursor-pointer group">
+          <td class="py-2 px-2 font-mono text-foreground font-medium group-hover:text-accent">#15749</td>
+          <td class="py-2 px-2">
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] bg-raised border border-border">
+              <span class="w-1.5 h-1.5 rounded-full" style="background-color: #FB923C"></span>
+              <span class="">At-Risk</span>
+            </span>
+          </td>
+          <td class="py-2 px-2">
+            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium" style="background-color: #EF444420; color: #EF4444; border: 1px solid #EF444440">
+              Critical
+            </span>
+          </td>
+          <td class="py-2 px-2 text-right font-mono font-medium text-foreground">
+            <div class="flex items-center justify-end gap-2">
+              <div class="w-12 h-1.5 bg-raised rounded-full overflow-hidden">
+                <div class="h-full rounded-full" style="width: 65.5%; background-color: #EF4444"></div>
+              </div>
+              <span class="">65.5</span>
+            </div>
+          </td>
+        </tr><tr class="hover:bg-raised/40 transition-colors cursor-pointer group">
+          <td class="py-2 px-2 font-mono text-foreground font-medium group-hover:text-accent">#18268</td>
+          <td class="py-2 px-2">
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] bg-raised border border-border">
+              <span class="w-1.5 h-1.5 rounded-full" style="background-color: #EF6B6B"></span>
+              <span class="">Lost</span>
+            </span>
+          </td>
+          <td class="py-2 px-2">
+            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium" style="background-color: #FB923C20; color: #FB923C; border: 1px solid #FB923C40">
+              High
+            </span>
+          </td>
+          <td class="py-2 px-2 text-right font-mono font-medium text-foreground">
+            <div class="flex items-center justify-end gap-2">
+              <div class="w-12 h-1.5 bg-raised rounded-full overflow-hidden">
+                <div class="h-full rounded-full" style="width: 63.5%; background-color: #FB923C"></div>
+              </div>
+              <span class="">63.5</span>
+            </div>
+          </td>
+        </tr><tr class="hover:bg-raised/40 transition-colors cursor-pointer group">
+          <td class="py-2 px-2 font-mono text-foreground font-medium group-hover:text-accent">#15026</td>
+          <td class="py-2 px-2">
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] bg-raised border border-border">
+              <span class="w-1.5 h-1.5 rounded-full" style="background-color: #FB923C"></span>
+              <span class="">At-Risk</span>
+            </span>
+          </td>
+          <td class="py-2 px-2">
+            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium" style="background-color: #FB923C20; color: #FB923C; border: 1px solid #FB923C40">
+              High
+            </span>
+          </td>
+          <td class="py-2 px-2 text-right font-mono font-medium text-foreground">
+            <div class="flex items-center justify-end gap-2">
+              <div class="w-12 h-1.5 bg-raised rounded-full overflow-hidden">
+                <div class="h-full rounded-full" style="width: 62%; background-color: #FB923C"></div>
+              </div>
+              <span class="">62.0</span>
+            </div>
+          </td>
+        </tr><tr class="hover:bg-raised/40 transition-colors cursor-pointer group">
+          <td class="py-2 px-2 font-mono text-foreground font-medium group-hover:text-accent">#12527</td>
+          <td class="py-2 px-2">
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] bg-raised border border-border">
+              <span class="w-1.5 h-1.5 rounded-full" style="background-color: #FB923C"></span>
+              <span class="">At-Risk</span>
+            </span>
+          </td>
+          <td class="py-2 px-2">
+            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium" style="background-color: #FB923C20; color: #FB923C; border: 1px solid #FB923C40">
+              High
+            </span>
+          </td>
+          <td class="py-2 px-2 text-right font-mono font-medium text-foreground">
+            <div class="flex items-center justify-end gap-2">
+              <div class="w-12 h-1.5 bg-raised rounded-full overflow-hidden">
+                <div class="h-full rounded-full" style="width: 62%; background-color: #FB923C"></div>
+              </div>
+              <span class="">62.0</span>
+            </div>
+          </td>
+        </tr><tr class="hover:bg-raised/40 transition-colors cursor-pointer group">
+          <td class="py-2 px-2 font-mono text-foreground font-medium group-hover:text-accent">#13672</td>
+          <td class="py-2 px-2">
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] bg-raised border border-border">
+              <span class="w-1.5 h-1.5 rounded-full" style="background-color: #EF6B6B"></span>
+              <span class="">Lost</span>
+            </span>
+          </td>
+          <td class="py-2 px-2">
+            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium" style="background-color: #FB923C20; color: #FB923C; border: 1px solid #FB923C40">
+              High
+            </span>
+          </td>
+          <td class="py-2 px-2 text-right font-mono font-medium text-foreground">
+            <div class="flex items-center justify-end gap-2">
+              <div class="w-12 h-1.5 bg-raised rounded-full overflow-hidden">
+                <div class="h-full rounded-full" style="width: 61.5%; background-color: #FB923C"></div>
+              </div>
+              <span class="">61.5</span>
+            </div>
+          </td>
+        </tr><tr class="hover:bg-raised/40 transition-colors cursor-pointer group">
+          <td class="py-2 px-2 font-mono text-foreground font-medium group-hover:text-accent">#16581</td>
+          <td class="py-2 px-2">
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] bg-raised border border-border">
+              <span class="w-1.5 h-1.5 rounded-full" style="background-color: #38BDF8"></span>
+              <span class="">Promising</span>
+            </span>
+          </td>
+          <td class="py-2 px-2">
+            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium" style="background-color: #FB923C20; color: #FB923C; border: 1px solid #FB923C40">
+              High
+            </span>
+          </td>
+          <td class="py-2 px-2 text-right font-mono font-medium text-foreground">
+            <div class="flex items-center justify-end gap-2">
+              <div class="w-12 h-1.5 bg-raised rounded-full overflow-hidden">
+                <div class="h-full rounded-full" style="width: 61.3%; background-color: #FB923C"></div>
+              </div>
+              <span class="">61.3</span>
+            </div>
+          </td>
+        </tr><tr class="hover:bg-raised/40 transition-colors cursor-pointer group">
+          <td class="py-2 px-2 font-mono text-foreground font-medium group-hover:text-accent">#14669</td>
+          <td class="py-2 px-2">
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] bg-raised border border-border">
+              <span class="w-1.5 h-1.5 rounded-full" style="background-color: #FB923C"></span>
+              <span class="">At-Risk</span>
+            </span>
+          </td>
+          <td class="py-2 px-2">
+            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium" style="background-color: #FB923C20; color: #FB923C; border: 1px solid #FB923C40">
+              High
+            </span>
+          </td>
+          <td class="py-2 px-2 text-right font-mono font-medium text-foreground">
+            <div class="flex items-center justify-end gap-2">
+              <div class="w-12 h-1.5 bg-raised rounded-full overflow-hidden">
+                <div class="h-full rounded-full" style="width: 60%; background-color: #FB923C"></div>
+              </div>
+              <span class="">60.0</span>
+            </div>
+          </td>
+        </tr></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <!-- ROW 4: DAILY SALES AND ANOMALIES (12 cols, height 220) -->
+            <div class="sl-card p-6">
+              <div class="flex items-center justify-between mb-2">
+                <div>
+                  <h3 class="text-base font-semibold text-foreground">Daily sales and anomalies</h3>
+                  <p class="text-xs text-muted-foreground">Deterministic 305-day transaction series with standard deviation thresholds</p>
+                </div>
+                <div class="flex items-center gap-3 text-xs">
+                  <div class="flex items-center gap-1.5">
+                    <span class="w-2.5 h-2.5 rounded-full bg-accent"></span>
+                    <span class="text-muted-foreground">Daily Net Sales</span>
+                  </div>
+                  <div class="flex items-center gap-1.5">
+                    <span class="w-2.5 h-2.5 rounded-full bg-negative"></span>
+                    <span class="text-foreground font-medium">16 Flagged Days (z &gt; 2.0)</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Area chart with teal gradient fill + red dots on flagged days -->
+              <div class="relative w-full h-[180px]">
+                <svg class="w-full h-full" viewBox="0 0 1000 180" preserveAspectRatio="none">
+                  <defs>
+                    <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stop-color="#14B8A6" stop-opacity="0.30"></stop>
+                      <stop offset="100%" stop-color="#14B8A6" stop-opacity="0.0"></stop>
+                    </linearGradient>
+                  </defs>
+
+                  <!-- Horizontal baseline -->
+                  <line x1="0" y1="160" x2="1000" y2="160" stroke="currentColor" stroke-opacity="0.08"></line>
+                  <line x1="0" y1="90" x2="1000" y2="90" stroke="currentColor" stroke-opacity="0.04" stroke-dasharray="3,3"></line>
+
+                  <!-- Area Path -->
+                  <path d="M 0,160 
+                           L 0,135 Q 30,140 60,110 T 120,120 T 180,95 T 240,130 T 300,100 T 360,115 T 420,85 T 480,105 T 540,75 T 600,90 T 660,65 T 720,80 T 780,45 T 840,30 T 900,60 T 960,140 L 1000,150 
+                           L 1000,160 Z" fill="url(#areaGradient)"></path>
+
+                  <!-- Stroke Line -->
+                  <path d="M 0,135 Q 30,140 60,110 T 120,120 T 180,95 T 240,130 T 300,100 T 360,115 T 420,85 T 480,105 T 540,75 T 600,90 T 660,65 T 720,80 T 780,45 T 840,30 T 900,60 T 960,140 L 1000,150" fill="none" stroke="#14B8A6" stroke-width="2"></path>
+
+                  <!-- Flagged anomaly dots (red circles) representing the 16 days -->
+                  <!-- 2010-12-19 sales 7170.95 z -2.09 -->
+                  <circle cx="35" cy="155" r="4.5" fill="#EF4444" stroke="#0C1D24" stroke-width="2"></circle>
+                  <!-- 2011-01-11 59864.98 z 2.22 -->
+                  <circle cx="95" cy="72" r="4.5" fill="#EF4444" stroke="#0C1D24" stroke-width="2"></circle>
+                  <!-- 2011-01-18 87065.81 z 3.38 -->
+                  <circle cx="115" cy="38" r="5" fill="#EF4444" stroke="#0C1D24" stroke-width="2"></circle>
+                  <!-- 2011-03-24 36030.79 z 2.20 -->
+                  <circle cx="230" cy="74" r="4.5" fill="#EF4444" stroke="#0C1D24" stroke-width="2"></circle>
+                  <!-- 2011-03-29 37190.52 z 2.27 -->
+                  <circle cx="245" cy="70" r="4.5" fill="#EF4444" stroke="#0C1D24" stroke-width="2"></circle>
+
+                  <!-- Additional 11 flagged days -->
+                  <circle cx="310" cy="62" r="4" fill="#EF4444" stroke="#0C1D24" stroke-width="1.5"></circle>
+                  <circle cx="380" cy="68" r="4" fill="#EF4444" stroke="#0C1D24" stroke-width="1.5"></circle>
+                  <circle cx="445" cy="55" r="4" fill="#EF4444" stroke="#0C1D24" stroke-width="1.5"></circle>
+                  <circle cx="510" cy="60" r="4" fill="#EF4444" stroke="#0C1D24" stroke-width="1.5"></circle>
+                  <circle cx="575" cy="48" r="4" fill="#EF4444" stroke="#0C1D24" stroke-width="1.5"></circle>
+                  <circle cx="630" cy="52" r="4" fill="#EF4444" stroke="#0C1D24" stroke-width="1.5"></circle>
+                  <circle cx="705" cy="40" r="4" fill="#EF4444" stroke="#0C1D24" stroke-width="1.5"></circle>
+                  <circle cx="770" cy="28" r="4" fill="#EF4444" stroke="#0C1D24" stroke-width="1.5"></circle>
+                  <circle cx="835" cy="22" r="5" fill="#EF4444" stroke="#0C1D24" stroke-width="2"></circle>
+                  <circle cx="880" cy="42" r="4" fill="#EF4444" stroke="#0C1D24" stroke-width="1.5"></circle>
+                  <circle cx="930" cy="58" r="4" fill="#EF4444" stroke="#0C1D24" stroke-width="1.5"></circle>
+                </svg>
+              </div>
+
+              <div class="mt-2 text-xs text-faint flex items-center justify-between">
+                <span class="">01 Dec 2010</span>
+                <span class="text-foreground font-mono">16 flagged days of 305</span>
+                <span class="">09 Dec 2011</span>
+              </div>
+            </div>
+
+            <!-- ROW 5: THREE INSIGHT BANNER CARDS -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div class="p-4 rounded-xl bg-accent/10 border border-accent/25 flex items-start gap-3">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="sparkles" aria-hidden="true" class="lucide lucide-sparkles w-5 h-5 text-accent shrink-0 mt-0.5"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"></path><path d="M20 2v4"></path><path d="M22 4h-4"></path><circle cx="4" cy="20" r="2"></circle></svg>
+                <div class="text-xs leading-relaxed text-foreground">
+                  <span class="font-semibold text-accent">Segment Impact:</span> At-Risk customers cause 9.3% of returns but make 10.3% of sales.
+                </div>
+              </div>
+              <div class="p-4 rounded-xl bg-accent/10 border border-accent/25 flex items-start gap-3">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="sparkles" aria-hidden="true" class="lucide lucide-sparkles w-5 h-5 text-accent-2 shrink-0 mt-0.5"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"></path><path d="M20 2v4"></path><path d="M22 4h-4"></path><circle cx="4" cy="20" r="2"></circle></svg>
+                <div class="text-xs leading-relaxed text-foreground">
+                  <span class="font-semibold text-accent-2">Product Driver:</span> Top product <code class="font-mono bg-card px-1 py-0.5 rounded text-foreground">22423</code> earns GBP 132.6k net revenue.
+                </div>
+              </div>
+              <div class="p-4 rounded-xl bg-accent/10 border border-accent/25 flex items-start gap-3">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="sparkles" aria-hidden="true" class="lucide lucide-sparkles w-5 h-5 text-warning shrink-0 mt-0.5"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"></path><path d="M20 2v4"></path><path d="M22 4h-4"></path><circle cx="4" cy="20" r="2"></circle></svg>
+                <div class="text-xs leading-relaxed text-foreground">
+                  <span class="font-semibold text-warning">Cohort Decay:</span> The biggest retention drop occurs between month 0 and month 1.
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- OTHER ROUTES: CENTRED EMPTY STATE ("Coming up") -->
+        <div id="view-empty" class="min-h-[60vh] flex flex-col items-center justify-center text-center animate-fadeIn hidden"><div class="w-full space-y-6 text-left"><div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border"><div class="flex items-center gap-3"><div class="w-12 h-12 rounded-2xl bg-accent/15 border border-accent/30 flex items-center justify-center text-accent shrink-0"><i id="empty-icon" data-lucide="layers" class="w-6 h-6"></i></div><div><h2 id="empty-title" class="text-2xl font-semibold text-foreground">Module View</h2><p id="empty-subtitle" class="text-xs text-muted-foreground mt-0.5">Detailed customer analytics and deterministic machine intelligence.</p></div></div><div class="flex items-center gap-2"><button onclick="triggerExport('CSV')" class="px-3 py-1.5 rounded-[10px] bg-raised hover:bg-border text-xs text-foreground font-medium flex items-center gap-1.5 border border-border"><i data-lucide="download" class="w-3.5 h-3.5"></i><span class="">Export View</span></button><button onclick="navigateTo('/overview')" class="px-3 py-1.5 rounded-[10px] accent-gradient-bg text-white text-xs font-medium shadow-sm">Overview</button></div></div><div id="empty-module-content" class="grid grid-cols-1 md:grid-cols-3 gap-6"></div></div></div>
+
+      </main>
+
+      <!-- MOBILE BOTTOM TAB BAR (below 768px: Overview, Segments, Cohorts, Risk, More) -->
+      <nav class="md:hidden h-14 bg-card border-t border-border flex items-center justify-around px-2 z-30 shrink-0">
+        <button onclick="navigateTo('/overview')" class="flex flex-col items-center gap-1 text-muted-foreground hover:text-accent">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="layout-dashboard" aria-hidden="true" class="lucide lucide-layout-dashboard w-4 h-4"><rect width="7" height="9" x="3" y="3" rx="1"></rect><rect width="7" height="5" x="14" y="3" rx="1"></rect><rect width="7" height="9" x="14" y="12" rx="1"></rect><rect width="7" height="5" x="3" y="16" rx="1"></rect></svg>
+          <span class="text-[10px]">Overview</span>
+        </button>
+        <button onclick="navigateTo('/segments')" class="flex flex-col items-center gap-1 text-muted-foreground hover:text-accent">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="users" aria-hidden="true" class="lucide lucide-users w-4 h-4"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><path d="M16 3.128a4 4 0 0 1 0 7.744"></path><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><circle cx="9" cy="7" r="4"></circle></svg>
+          <span class="text-[10px]">Segments</span>
+        </button>
+        <button onclick="navigateTo('/cohorts')" class="flex flex-col items-center gap-1 text-muted-foreground hover:text-accent">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="grid-3x3" aria-hidden="true" class="lucide lucide-grid-3x3 w-4 h-4"><rect width="18" height="18" x="3" y="3" rx="2"></rect><path d="M3 9h18"></path><path d="M3 15h18"></path><path d="M9 3v18"></path><path d="M15 3v18"></path></svg>
+          <span class="text-[10px]">Cohorts</span>
+        </button>
+        <button onclick="navigateTo('/risk')" class="flex flex-col items-center gap-1 text-muted-foreground hover:text-accent">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="shield-alert" aria-hidden="true" class="lucide lucide-shield-alert w-4 h-4"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"></path><path d="M12 8v4"></path><path d="M12 16h.01"></path></svg>
+          <span class="text-[10px]">Risk</span>
+        </button>
+        <button onclick="toggleMobileSheet()" class="flex flex-col items-center gap-1 text-muted-foreground hover:text-accent">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="more-horizontal" aria-hidden="true" class="lucide lucide-more-horizontal w-4 h-4"><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle></svg>
+          <span class="text-[10px]">More</span>
+        </button>
+      </nav>
+
+    </div>
+  </div>
+
+  <!-- COMMAND PALETTE DIALOG (Ctrl/Cmd + K) -->
+  <div id="customer-drawer" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex justify-end"><div class="w-full max-w-lg bg-card h-full border-l border-border shadow-2xl flex flex-col justify-between overflow-hidden animate-fadeIn"><div class="p-6 border-b border-border flex items-center justify-between"><div class="flex items-center gap-3"><div class="w-10 h-10 rounded-xl bg-accent/20 flex items-center justify-center text-accent"><i data-lucide="user-check" class="w-5 h-5"></i></div><div><div class="flex items-center gap-2"><h3 id="drawer-cust-id" class="text-lg font-bold text-foreground font-mono">Customer #13533</h3><span id="drawer-risk-band" class="px-2 py-0.5 rounded text-[11px] font-semibold bg-negative/20 text-negative border border-negative/30">Critical</span></div><p id="drawer-cust-seg" class="text-xs text-muted-foreground">At-Risk Segment • 13 months tracked</p></div></div><button onclick="closeCustomerDrawer()" class="p-2 rounded-lg hover:bg-raised text-faint hover:text-foreground"><i data-lucide="x" class="w-5 h-5"></i></button></div><div class="flex-1 overflow-y-auto p-6 space-y-6 text-xs"><div class="grid grid-cols-3 gap-3"><div class="p-3 rounded-xl bg-raised border border-border"><div class="text-faint text-[10px] uppercase font-semibold">Risk Score</div><div id="drawer-metric-score" class="text-xl font-bold font-mono text-negative mt-1">66.0</div></div><div class="p-3 rounded-xl bg-raised border border-border"><div class="text-faint text-[10px] uppercase font-semibold">RFM Decay</div><div id="drawer-metric-decay" class="text-xl font-bold font-mono text-foreground mt-1">0.78</div></div><div class="p-3 rounded-xl bg-raised border border-border"><div class="text-faint text-[10px] uppercase font-semibold">Return Rate</div><div id="drawer-metric-returns" class="text-xl font-bold font-mono text-positive mt-1">0.0%</div></div></div><div class="p-4 rounded-xl bg-raised/70 border border-border space-y-3"><div class="font-semibold text-foreground text-sm flex items-center gap-2"><i data-lucide="activity" class="w-4 h-4 text-accent"></i><span class="">Diagnostic Breakdown</span></div><div class="space-y-2"><div class="flex justify-between items-center"><span class="text-muted-foreground">Recency Gap Trend</span><span id="drawer-gap-trend" class="font-mono font-medium text-foreground">Accelerating (+1.0)</span></div><div class="flex justify-between items-center"><span class="text-muted-foreground">Anomaly Flag</span><span id="drawer-anomaly-flag" class="font-mono font-medium text-negative">Detected (z &gt; 2.0)</span></div><div class="flex justify-between items-center"><span class="text-muted-foreground">Historical Total Spend</span><span class="font-mono font-medium text-foreground">£1,842.50</span></div><div class="flex justify-between items-center"><span class="text-muted-foreground">Total Completed Orders</span><span class="font-mono font-medium text-foreground">12 invoices</span></div></div></div><div class="space-y-3"><div class="font-semibold text-foreground text-sm flex items-center justify-between"><span class="">Recommended Retention Action</span><span class="text-[11px] text-accent font-mono">Automated</span></div><div class="p-3 rounded-xl bg-accent/10 border border-accent/30 text-muted-foreground leading-relaxed">Customer displays a severe lapse in order cadence alongside high previous lifetime value. Recommend immediate engagement via targeted win-back sequence with free freight or catalog reactivation coupon.</div></div></div><div class="p-4 border-t border-border flex items-center justify-between gap-3 bg-card"><button onclick="closeCustomerDrawer()" class="w-1/2 py-2 rounded-lg bg-raised hover:bg-border text-foreground text-xs font-medium border border-border">Dismiss</button><button onclick="showToast('Initiating retention campaign webhook...'); closeCustomerDrawer();" class="w-1/2 py-2 rounded-lg accent-gradient-bg text-white text-xs font-medium shadow-sm">Trigger Win-Back</button></div></div></div><div id="cmd-dialog" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-start justify-center pt-20 p-4">
+    <div class="bg-card w-full max-w-lg rounded-2xl border border-border shadow-2xl overflow-hidden animate-fadeIn">
+      <div class="flex items-center px-4 py-3 border-b border-border">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="search" aria-hidden="true" class="lucide lucide-search w-4 h-4 text-faint mr-3"><path d="m21 21-4.34-4.34"></path><circle cx="11" cy="11" r="8"></circle></svg>
+        <input type="text" id="cmd-input" placeholder="Type a command or search page..." class="w-full bg-transparent text-sm text-foreground focus:outline-none placeholder:text-faint">
+        <span onclick="closeCommandPalette()" class="text-xs text-faint cursor-pointer hover:text-foreground">ESC</span>
+      </div>
+      <div class="p-2 max-h-72 overflow-y-auto space-y-1 text-xs" id="cmd-list">
+        <div onclick="navigateTo('/'); closeCommandPalette();" class="p-2 rounded-lg hover:bg-raised cursor-pointer flex items-center justify-between text-foreground">
+          <div class="flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="upload-cloud" aria-hidden="true" class="lucide lucide-upload-cloud w-4 h-4 text-accent"><path d="M12 13v8"></path><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"></path><path d="m8 17 4-4 4 4"></path></svg>
+            <span class="">Data Source</span>
+          </div>
+          <span class="text-[10px] text-faint">/</span>
+        </div>
+        <div onclick="navigateTo('/overview'); closeCommandPalette();" class="p-2 rounded-lg hover:bg-raised cursor-pointer flex items-center justify-between text-foreground">
+          <div class="flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="layout-dashboard" aria-hidden="true" class="lucide lucide-layout-dashboard w-4 h-4 text-accent"><rect width="7" height="9" x="3" y="3" rx="1"></rect><rect width="7" height="5" x="14" y="3" rx="1"></rect><rect width="7" height="9" x="14" y="12" rx="1"></rect><rect width="7" height="5" x="3" y="16" rx="1"></rect></svg>
+            <span class="">Overview</span>
+          </div>
+          <span class="text-[10px] text-faint">/overview</span>
+        </div>
+        <div onclick="navigateTo('/journey'); closeCommandPalette();" class="p-2 rounded-lg hover:bg-raised cursor-pointer flex items-center justify-between text-foreground">
+          <div class="flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="route" aria-hidden="true" class="lucide lucide-route w-4 h-4 text-muted-foreground"><circle cx="6" cy="19" r="3"></circle><path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15"></path><circle cx="18" cy="5" r="3"></circle></svg>
+            <span class="">Customer Journey</span>
+          </div>
+          <span class="text-[10px] text-faint">/journey</span>
+        </div>
+        <div onclick="navigateTo('/segments'); closeCommandPalette();" class="p-2 rounded-lg hover:bg-raised cursor-pointer flex items-center justify-between text-foreground">
+          <div class="flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="users" aria-hidden="true" class="lucide lucide-users w-4 h-4 text-muted-foreground"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><path d="M16 3.128a4 4 0 0 1 0 7.744"></path><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><circle cx="9" cy="7" r="4"></circle></svg>
+            <span class="">Segments</span>
+          </div>
+          <span class="text-[10px] text-faint">/segments</span>
+        </div>
+        <div onclick="navigateTo('/risk'); closeCommandPalette();" class="p-2 rounded-lg hover:bg-raised cursor-pointer flex items-center justify-between text-foreground">
+          <div class="flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="shield-alert" aria-hidden="true" class="lucide lucide-shield-alert w-4 h-4 text-muted-foreground"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"></path><path d="M12 8v4"></path><path d="M12 16h.01"></path></svg>
+            <span class="">Risk Score</span>
+          </div>
+          <span class="text-[10px] text-faint">/risk</span>
+        </div>
+        <div onclick="navigateTo('/simulator'); closeCommandPalette();" class="p-2 rounded-lg hover:bg-raised cursor-pointer flex items-center justify-between text-foreground">
+          <div class="flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="sliders-horizontal" aria-hidden="true" class="lucide lucide-sliders-horizontal w-4 h-4 text-muted-foreground"><path d="M10 5H3"></path><path d="M12 19H3"></path><path d="M14 3v4"></path><path d="M16 17v4"></path><path d="M21 12h-9"></path><path d="M21 19h-5"></path><path d="M21 5h-7"></path><path d="M8 10v4"></path><path d="M8 12H3"></path></svg>
+            <span class="">What-If Simulator</span>
+          </div>
+          <span class="text-[10px] text-faint">/simulator</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATION CONTAINER -->
+  <div id="toast" class="fixed bottom-6 right-6 transform translate-y-24 opacity-0 pointer-events-none z-50 bg-card border border-border px-4 py-3 rounded-xl shadow-2xl flex items-center gap-3 text-sm text-foreground">
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="info" aria-hidden="true" class="lucide lucide-info w-4 h-4 text-accent shrink-0"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>
+    <span id="toast-message" class="">Notification</span>
+  </div>
+
+  <!-- SCRIPT: ROUTING, MOCK DATA, AND INTERACTIONS -->
+  <script>
+    // --- TYPED MOCK DATA (mirrors src/data/mock.ts) ---
+    const MOCK_DATA = {
+      kpis: {
+        totalCustomers: 4334,
+        activeCustomers: 3362,
+        repeatRate: 0.6527,
+        churnRate: 0.8852,
+        revenueRetentionPct: 29.79,
+        netRevenue: 8265476.93,
+        grossSales: 8736000,
+        returnsValue: 471000,
+        portfolioReturnRate: 0.0512,
+        lostShare: 0.224,
+      },
+      segments: [
+        { name: "Promising", count: 1078, share: 0.135, color: "#38BDF8" },
+        { name: "Lost", count: 972, share: 0.030, color: "#EF6B6B" },
+        { name: "Champion", count: 897, share: 0.620, color: "#F5B83D" },
+        { name: "At-Risk", count: 763, share: 0.103, color: "#FB923C" },
+        { name: "Loyal", count: 390, share: 0.090, color: "#14B8A6" },
+        { name: "New", count: 234, share: 0.022, color: "#7AA2F7" },
+      ],
+      topRiskCustomers: [
+        { id: "13533", rfm_decay: 0.775, return_rate: 0.000, gap_trend: 1.0, anomaly: 1, score: 66.0, segment: "At-Risk", band: "Critical" },
+        { id: "15749", rfm_decay: 0.550, return_rate: 0.341, gap_trend: 1.0, anomaly: 1, score: 65.5, segment: "At-Risk", band: "Critical" },
+        { id: "18268", rfm_decay: 0.900, return_rate: 0.500, gap_trend: 0.0, anomaly: 1, score: 63.5, segment: "Lost", band: "High" },
+        { id: "15026", rfm_decay: 0.675, return_rate: 0.000, gap_trend: 1.0, anomaly: 1, score: 62.0, segment: "At-Risk", band: "High" },
+        { id: "12527", rfm_decay: 0.675, return_rate: 0.000, gap_trend: 1.0, anomaly: 1, score: 62.0, segment: "At-Risk", band: "High" },
+        { id: "13672", rfm_decay: 0.850, return_rate: 0.500, gap_trend: 0.0, anomaly: 1, score: 61.5, segment: "Lost", band: "High" },
+        { id: "16581", rfm_decay: 1.000, return_rate: 0.251, gap_trend: 0.0, anomaly: 1, score: 61.3, segment: "Promising", band: "High" },
+        { id: "14669", rfm_decay: 0.625, return_rate: 0.000, gap_trend: 1.0, anomaly: 1, score: 60.0, segment: "At-Risk", band: "High" },
+        { id: "14267", rfm_decay: 0.525, return_rate: 0.135, gap_trend: 1.0, anomaly: 1, score: 59.4, segment: "At-Risk", band: "Medium" },
+        { id: "13827", rfm_decay: 0.575, return_rate: 0.000, gap_trend: 1.0, anomaly: 1, score: 58.0, segment: "At-Risk", band: "Medium" }
+      ]
+    };
+
+    // Global Filter State (simulating FilterProvider context)
+    let selectedSegments = new Set(["Champion", "Loyal", "Promising", "New", "At-Risk", "Lost"]);
+    let currentRoute = "/";
+    let isSidebarCollapsed = false;
+
+    // --- POPULATE TABLES & FILTERS ON INIT ---
+    function initializeComponents() {
+      // Populate Segments Popover Checkboxes
+      const container = document.getElementById("segment-checkboxes");
+      container.innerHTML = "";
+      MOCK_DATA.segments.forEach(seg => {
+        const item = document.createElement("label");
+        item.className = "flex items-center gap-2 cursor-pointer text-foreground hover:text-accent";
+        item.innerHTML = `
+          <input type="checkbox" checked value="${seg.name}" onchange="handleSegmentCheckbox(this)" class="rounded text-accent focus:ring-accent bg-raised border-border">
+          <span class="w-2 h-2 rounded-full" style="background-color: ${seg.color}"></span>
+          <span>${seg.name}</span>
+        `;
+        container.appendChild(item);
+      });
+
+      // Populate Top Risk Table
+      const tableBody = document.getElementById("highest-risk-rows");
+      tableBody.innerHTML = "";
+      MOCK_DATA.topRiskCustomers.slice(0, 8).forEach(cust => {
+        const tr = document.createElement("tr");
+        tr.className = "hover:bg-raised/40 transition-colors cursor-pointer group";
+        tr.onclick = () => showToast(`Customer #${cust.id} detail drawer`);
+        
+        let bandColor = cust.band === 'Critical' ? '#EF4444' : cust.band === 'High' ? '#FB923C' : '#FBBF24';
+        let segColor = MOCK_DATA.segments.find(s => s.name === cust.segment)?.color || '#14B8A6';
+
+        tr.innerHTML = `
+          <td class="py-2 px-2 font-mono text-foreground font-medium group-hover:text-accent">#${cust.id}</td>
+          <td class="py-2 px-2">
+            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] bg-raised border border-border">
+              <span class="w-1.5 h-1.5 rounded-full" style="background-color: ${segColor}"></span>
+              <span>${cust.segment}</span>
+            </span>
+          </td>
+          <td class="py-2 px-2">
+            <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium" style="background-color: ${bandColor}20; color: ${bandColor}; border: 1px solid ${bandColor}40">
+              ${cust.band}
+            </span>
+          </td>
+          <td class="py-2 px-2 text-right font-mono font-medium text-foreground">
+            <div class="flex items-center justify-end gap-2">
+              <div class="w-12 h-1.5 bg-raised rounded-full overflow-hidden">
+                <div class="h-full rounded-full" style="width: ${cust.score}%; background-color: ${bandColor}"></div>
+              </div>
+              <span>${cust.score.toFixed(1)}</span>
+            </div>
+          </td>
+        `;
+        tableBody.appendChild(tr);
+      });
+
+      lucide.createIcons();
+    }
+
+    // --- NAVIGATION AND ROUTING ---
+    function navigateTo(route) {
+      currentRoute = route;
+      window.location.hash = route;
+
+      // Update Top breadcrumb
+      const pageNames = {
+        "/": "Data Source",
+        "/overview": "Overview",
+        "/journey": "Customer Journey",
+        "/segments": "Segments",
+        "/cohorts": "Cohorts",
+        "/returns": "Returns",
+        "/products": "Products",
+        "/anomalies": "Anomalies",
+        "/risk": "Risk Score",
+        "/simulator": "What-If Simulator",
+        "/pipeline": "Pipeline",
+        "/methodology": "Methodology",
+        "/ml-lab": "ML Lab",
+      };
+      document.getElementById("breadcrumb-current").textContent = pageNames[route] || "Page";
+
+      // Update sidebar active highlights
+      document.querySelectorAll(".nav-item").forEach(el => {
+        el.classList.remove("bg-accent/10", "border-l-[3px]", "border-accent", "text-foreground");
+        el.classList.add("text-muted-foreground");
+      });
+
+      const navMap = {
+        "/": "nav-item-root",
+        "/overview": "nav-item-overview",
+        "/journey": "nav-item-journey",
+        "/segments": "nav-item-segments",
+        "/cohorts": "nav-item-cohorts",
+        "/returns": "nav-item-returns",
+        "/products": "nav-item-products",
+        "/anomalies": "nav-item-anomalies",
+        "/risk": "nav-item-risk",
+        "/simulator": "nav-item-simulator",
+        "/pipeline": "nav-item-pipeline",
+        "/methodology": "nav-item-methodology",
+        "/ml-lab": "nav-item-mllab",
+      };
+
+      const activeNav = document.getElementById(navMap[route]);
+      if (activeNav) {
+        activeNav.classList.add("bg-accent/10", "border-l-[3px]", "border-accent", "text-foreground");
+        activeNav.classList.remove("text-muted-foreground");
+      }
+
+      // Hide all views first
+      document.getElementById("view-datasource").classList.add("hidden");
+      document.getElementById("view-overview").classList.add("hidden");
+      document.getElementById("view-empty").classList.add("hidden");
+
+      if (route === "/" || route === "") {
+        document.getElementById("view-datasource").classList.remove("hidden");
+      } else if (route === "/overview") {
+        document.getElementById("view-overview").classList.remove("hidden");
+        // Trigger 600ms skeleton on overview page as requested
+        showOverviewWithSkeleton();
+      } else {
+        // Centred EmptyState for all other paths
+        document.getElementById("view-empty").classList.remove("hidden");
+        document.getElementById("empty-title").textContent = pageNames[route] || "Coming up";
+      }
+
+      window.scrollTo(0, 0);
+    }
+
+    let hasLoadedOverviewBefore = false;
+    function showOverviewWithSkeleton() {
+      if (!hasLoadedOverviewBefore) {
+        document.getElementById("overview-skeleton").classList.remove("hidden");
+        document.getElementById("overview-content").classList.add("hidden");
+        setTimeout(() => {
+          document.getElementById("overview-skeleton").classList.add("hidden");
+          document.getElementById("overview-content").classList.remove("hidden");
+          hasLoadedOverviewBefore = true;
+          lucide.createIcons();
+        }, 600);
+      } else {
+        document.getElementById("overview-skeleton").classList.add("hidden");
+        document.getElementById("overview-content").classList.remove("hidden");
+      }
+    }
+
+    // --- DATA SOURCE UPLOAD & STEPPER SIMULATION ---
+    let currentUploadType = 'A';
+    function simulateFileUpload(type) {
+      currentUploadType = type;
+      const panel = document.getElementById("validation-panel");
+      panel.classList.remove("hidden");
+
+      const filename = type === 'A' ? 'uci_online_retail_cleaned.parquet' : 'online_retail_raw_2011.xlsx';
+      document.getElementById("val-filename").textContent = filename;
+
+      // Checklist columns
+      const checklist = document.getElementById("column-checklist");
+      checklist.innerHTML = "";
+      const colsA = ["CustomerID", "InvoiceNo", "InvoiceDate", "StockCode", "NetRevenue"];
+      const colsB = ["InvoiceNo", "StockCode", "Description", "Quantity", "InvoiceDate", "UnitPrice", "CustomerID", "Country"];
+      const targetCols = type === 'A' ? colsA : colsB;
+
+      targetCols.forEach(col => {
+        const item = document.createElement("div");
+        item.className = "flex items-center gap-1.5 p-2 rounded-lg bg-raised/70 border border-border/70 text-foreground font-mono";
+        item.innerHTML = `<i data-lucide="check-circle-2" class="w-4 h-4 text-positive shrink-0"></i><span>${col}</span>`;
+        checklist.appendChild(item);
+      });
+
+      // Reset stepper container
+      document.getElementById("stepper-container").classList.add("hidden");
+      document.getElementById("stepper-complete-actions").classList.add("hidden");
+
+      lucide.createIcons();
+      panel.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function startAnalysisStepper() {
+      const container = document.getElementById("stepper-container");
+      container.classList.remove("hidden");
+      document.getElementById("btn-start-analysis").disabled = true;
+
+      const stepsA = [
+        "Load", "Validate", "Customer Journey", "RFM", "Cohorts", 
+        "Returns", "Products", "Anomalies", "Risk Score", "KPIs", "Done"
+      ];
+
+      const stepsB = [
+        "Read file", "Check columns", "Standardise types", "Remove duplicates", 
+        "Remove missing CustomerID", "Remove missing fields", "Remove zero quantity", 
+        "Remove negative price", "Remove non-product records", "Classify sales vs returns", 
+        "Compute values", "Save cleaned data",
+        "Load", "Validate", "Customer Journey", "RFM", "Cohorts", 
+        "Returns", "Products", "Anomalies", "Risk Score", "KPIs", "Done"
+      ];
+
+      const activeSteps = currentUploadType === 'A' ? stepsA : stepsB;
+      const stepsList = document.getElementById("steps-list");
+      stepsList.innerHTML = "";
+
+      activeSteps.forEach((s, idx) => {
+        const stepRow = document.createElement("div");
+        stepRow.id = `step-row-${idx}`;
+        stepRow.className = "flex items-center justify-between text-xs py-1.5 px-3 rounded-lg bg-raised/50 border border-border/40 text-muted-foreground";
+        stepRow.innerHTML = `
+          <div class="flex items-center gap-2.5">
+            <span id="step-icon-${idx}" class="w-4 h-4 rounded-full border border-faint/40 flex items-center justify-center text-[10px]">○</span>
+            <span class="font-medium text-foreground">${s}</span>
+          </div>
+          <span id="step-status-${idx}" class="text-[11px] text-faint">Waiting</span>
+        `;
+        stepsList.appendChild(stepRow);
+      });
+
+      let currentStep = 0;
+      const startTime = Date.now();
+      const timerInterval = setInterval(() => {
+        const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+        document.getElementById("stepper-timer").textContent = `Elapsed: ${elapsed}s`;
+      }, 100);
+
+      function runNextStep() {
+        if (currentStep < activeSteps.length) {
+          // Mark running
+          const icon = document.getElementById(`step-icon-${currentStep}`);
+          const status = document.getElementById(`step-status-${currentStep}`);
+          if (icon && status) {
+            icon.innerHTML = `<span class="animate-spin text-accent">◌</span>`;
+            status.textContent = "Processing...";
+            status.className = "text-[11px] text-accent";
+          }
+
+          setTimeout(() => {
+            // Mark done
+            if (icon && status) {
+              icon.innerHTML = `<i data-lucide="check" class="w-3.5 h-3.5 text-positive"></i>`;
+              status.textContent = "Done";
+              status.className = "text-[11px] text-positive font-medium";
+              lucide.createIcons();
+            }
+
+            currentStep++;
+            const pct = Math.round((currentStep / activeSteps.length) * 100);
+            document.getElementById("stepper-progress-bar").style.width = pct + "%";
+            document.getElementById("stepper-progress-text").textContent = pct + "%";
+
+            runNextStep();
+          }, 300); // 300ms simulated per step as requested
+        } else {
+          clearInterval(timerInterval);
+          showToast("Analysis complete. Ready to inspect!");
+          document.getElementById("stepper-complete-actions").classList.remove("hidden");
+          if (currentUploadType === 'B') {
+            document.getElementById("cleaning-banner").classList.remove("hidden");
+          }
+          document.getElementById("btn-start-analysis").disabled = false;
+        }
+      }
+
+      runNextStep();
+    }
+
+    // --- GLOBAL FILTERS & TOASTS ---
+    function toggleSegmentPopover() {
+      const popover = document.getElementById("segment-popover");
+      popover.classList.toggle("hidden");
+    }
+
+    function toggleExportMenu() {
+      const menu = document.getElementById("export-dropdown");
+      menu.classList.toggle("hidden");
+    }
+
+    function triggerExport(format) {
+      document.getElementById("export-dropdown").classList.add("hidden");
+      showToast("Available when backend is connected");
+    }
+
+    function toggleSegmentFilter(name) {
+      if (selectedSegments.has(name)) {
+        selectedSegments.delete(name);
+      } else {
+        selectedSegments.add(name);
+      }
+      updateSegmentUI();
+      showToast(`Filter: ${name} ${selectedSegments.has(name) ? 'included' : 'excluded'}`);
+    }
+
+    function handleSegmentCheckbox(cb) {
+      if (cb.checked) {
+        selectedSegments.add(cb.value);
+      } else {
+        selectedSegments.delete(cb.value);
+      }
+      updateSegmentUI();
+    }
+
+    function selectAllSegments() {
+      selectedSegments = new Set(["Champion", "Loyal", "Promising", "New", "At-Risk", "Lost"]);
+      document.querySelectorAll('#segment-checkboxes input[type="checkbox"]').forEach(c => c.checked = true);
+      updateSegmentUI();
+      showToast("All segments active");
+    }
+
+    function updateSegmentUI() {
+      document.getElementById("segment-badge-text").textContent = `Segments (${selectedSegments.size}/6)`;
+    }
+
+    function showToast(message) {
+      const toast = document.getElementById("toast");
+      const msg = document.getElementById("toast-message");
+      msg.textContent = message;
+      toast.classList.remove("translate-y-24", "opacity-0", "pointer-events-none");
+      setTimeout(() => {
+        toast.classList.add("translate-y-24", "opacity-0", "pointer-events-none");
+      }, 3000);
+    }
+
+    // --- THEME TOGGLE (Dark default / Light with .dark class removal) ---
+    function toggleTheme() {
+      const html = document.documentElement;
+      const isDark = html.classList.contains("dark");
+      if (isDark) {
+        html.classList.remove("dark");
+        document.getElementById("theme-icon").setAttribute("data-lucide", "moon");
+      } else {
+        html.classList.add("dark");
+        document.getElementById("theme-icon").setAttribute("data-lucide", "sun");
+      }
+      lucide.createIcons();
+    }
+
+    // --- SIDEBAR COLLAPSE (248px -> 72px) ---
+    function toggleSidebar() {
+      const sidebar = document.getElementById("sidebar");
+      isSidebarCollapsed = !isSidebarCollapsed;
+      if (isSidebarCollapsed) {
+        sidebar.classList.remove("w-[248px]");
+        sidebar.classList.add("w-[72px]");
+        document.querySelectorAll(".sidebar-text").forEach(el => el.classList.add("hidden"));
+        document.getElementById("collapse-icon").setAttribute("data-lucide", "chevron-right");
+      } else {
+        sidebar.classList.add("w-[248px]");
+        sidebar.classList.remove("w-[72px]");
+        document.querySelectorAll(".sidebar-text").forEach(el => el.classList.remove("hidden"));
+        document.getElementById("collapse-icon").setAttribute("data-lucide", "chevron-left");
+      }
+      lucide.createIcons();
+    }
+
+    // --- COMMAND PALETTE (Ctrl / Cmd + K) ---
+    function openCommandPalette() {
+      document.getElementById("cmd-dialog").classList.remove("hidden");
+      document.getElementById("cmd-input").focus();
+    }
+    function closeCommandPalette() {
+      document.getElementById("cmd-dialog").classList.add("hidden");
+    }
+    window.addEventListener("keydown", (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        openCommandPalette();
+      }
+      if (e.key === "Escape") {
+        closeCommandPalette();
+        document.getElementById("segment-popover").classList.add("hidden");
+        document.getElementById("export-dropdown").classList.add("hidden");
+      }
+    });
+
+    // Close popovers on outer click
+    window.addEventListener("click", (e) => {
+      const segBtn = document.getElementById("segment-btn");
+      const segPop = document.getElementById("segment-popover");
+      if (segPop && !segPop.contains(e.target) && !segBtn.contains(e.target)) {
+        segPop.classList.add("hidden");
+      }
+    });
+
+    // Handle hash on initial load
+    window.addEventListener("DOMContentLoaded", () => {
+      initializeComponents();
+      const initialRoute = window.location.hash.replace("#", "") || "/";
+      navigateTo(initialRoute);
+    });
+  </script>
+
+
+
+
+<script>
+function openCustomerDrawer(id) {
+  const cust = MOCK_DATA.topRiskCustomers.find(c => c.id === id) || MOCK_DATA.topRiskCustomers[0];
+  document.getElementById('drawer-cust-id').textContent = 'Customer #' + cust.id;
+  document.getElementById('drawer-risk-band').textContent = cust.band;
+  const bandColor = cust.band === 'Critical' ? '#EF4444' : cust.band === 'High' ? '#FB923C' : '#FBBF24';
+  document.getElementById('drawer-risk-band').style.backgroundColor = bandColor + '20';
+  document.getElementById('drawer-risk-band').style.color = bandColor;
+  document.getElementById('drawer-risk-band').style.borderColor = bandColor + '40';
+  document.getElementById('drawer-cust-seg').textContent = cust.segment + ' Segment • 13 months tracked';
+  document.getElementById('drawer-metric-score').textContent = cust.score.toFixed(1);
+  document.getElementById('drawer-metric-decay').textContent = cust.rfm_decay.toFixed(2);
+  document.getElementById('drawer-metric-returns').textContent = (cust.return_rate * 100).toFixed(1) + '%';
+  document.getElementById('drawer-gap-trend').textContent = cust.gap_trend > 0 ? 'Accelerating (+' + cust.gap_trend.toFixed(1) + ')' : 'Stable';
+  document.getElementById('drawer-anomaly-flag').textContent = cust.anomaly ? 'Detected (z > 2.0)' : 'None';
+  document.getElementById('customer-drawer').classList.remove('hidden');
+  lucide.createIcons();
+}
+function closeCustomerDrawer() {
+  document.getElementById('customer-drawer').classList.add('hidden');
+}
+const MODULE_METRICS = {
+  '/segments': { icon: 'users', title: 'Customer Segments', desc: 'RFM customer classification across Champions, Loyal, Promising, At-Risk, and Lost.', cards: [
+    { label: 'Champions (20.7%)', val: '897 accounts', sub: 'Generate 62.0% of portfolio revenue', color: '#F5B83D' },
+    { label: 'Promising (24.8%)', val: '1,078 accounts', sub: 'Highest conversion potential for Q1', color: '#38BDF8' },
+    { label: 'At-Risk (17.6%)', val: '763 accounts', sub: 'Require urgent retention touchpoints', color: '#FB923C' }
+  ]},
+  '/cohorts': { icon: 'grid-3x3', title: 'Cohort Retention Matrix', desc: 'Retention percentages tracked across monthly customer acquisition vintages.', cards: [
+    { label: 'Month 0 Retention', val: '100%', sub: 'Baseline initial order transaction', color: '#14B8A6' },
+    { label: 'Month 1 Average', val: '38.4%', sub: 'Primary churn drop occurs here', color: '#F5B83D' },
+    { label: 'Month 12 Repeat', val: '29.8%', sub: 'Long-term customer stability rate', color: '#0EA5E9' }
+  ]},
+  '/returns': { icon: 'undo-2', title: 'Returns & Leakage', desc: 'Breakdown of refunds, credit notes, and cancellation velocity.', cards: [
+    { label: 'Portfolio Return Rate', val: '5.12%', sub: 'GBP 471k total refunds issued', color: '#F87171' },
+    { label: 'Largest Return Category', val: 'Gift Items', sub: 'Code 22423 represents 4.2% returns', color: '#FB923C' },
+    { label: 'Net Recoverable Value', val: '£84.2k', sub: 'Estimated stock restock salvage', color: '#14B8A6' }
+  ]},
+  '/products': { icon: 'package', title: 'Product Performance', desc: 'SKU velocity, Pareto contribution, and repeat order affinity.', cards: [
+    { label: 'Top Product SKU 22423', val: '£132.6k Net', sub: 'Best seller in domestic markets', color: '#0EA5E9' },
+    { label: 'SKU Concentration', val: '80 / 20 Rule', sub: 'Top 18% products drive 80% sales', color: '#14B8A6' },
+    { label: 'Stockout Risk Alert', val: '14 SKUs', sub: 'Inventory depletion within 14 days', color: '#FBBF24' }
+  ]},
+  '/anomalies': { icon: 'activity', title: 'Anomaly Detection', desc: 'Deterministic 305-day transaction series with z-score standard deviation bounds.', cards: [
+    { label: 'Flagged Anomaly Days', val: '16 Days', sub: 'Standard deviation z > 2.0', color: '#EF4444' },
+    { label: 'Max Spike (18 Jan 2011)', val: '£87.1k Net', sub: 'Unusual bulk wholesale order spike', color: '#14B8A6' },
+    { label: 'Low Anomaly (19 Dec 2010)', val: '£7.1k Net', sub: 'Weather interruption disruption', color: '#FB923C' }
+  ]},
+  '/risk': { icon: 'shield-alert', title: 'Risk Score Engine', desc: 'Predictive RFM decay, frequency gap acceleration, and return velocity metrics.', cards: [
+    { label: 'Critical Risk Accounts', val: '42 Accounts', sub: 'Decay score > 65.0 threshold', color: '#EF4444' },
+    { label: 'At-Risk Revenue', val: '£412,850', sub: 'Cumulative 12-month gross volume', color: '#FB923C' },
+    { label: 'Avg Return Propensity', val: '14.8%', sub: '2.8x higher than general baseline', color: '#FBBF24' }
+  ]},
+  '/simulator': { icon: 'sliders-horizontal', title: 'What-If Simulator', desc: 'Simulate revenue outcomes under variable retention and churn mitigation scenarios.', cards: [
+    { label: '+5% Retention Boost', val: '+£413,270', sub: 'Projected net annual revenue gain', color: '#14B8A6' },
+    { label: '-10% Returns Reduction', val: '+£47,100', sub: 'Operational recovery through QC', color: '#0EA5E9' },
+    { label: 'Win-Back Conversion', val: '12.4%', sub: 'Estimated return from critical cohort', color: '#F5B83D' }
+  ]}
+};
+const origNav = window.navigateTo;
+window.navigateTo = function(route) {
+  origNav(route);
+  if (MODULE_METRICS[route]) {
+    const meta = MODULE_METRICS[route];
+    const emptyIcon = document.getElementById('empty-icon');
+    const emptyTitle = document.getElementById('empty-title');
+    const emptySub = document.getElementById('empty-subtitle');
+    const contentBox = document.getElementById('empty-module-content');
+    if (emptyIcon) emptyIcon.setAttribute('data-lucide', meta.icon);
+    if (emptyTitle) emptyTitle.textContent = meta.title;
+    if (emptySub) emptySub.textContent = meta.desc;
+    if (contentBox) {
+      contentBox.innerHTML = meta.cards.map(c => `
+        <div class="sl-card p-6 flex flex-col justify-between">
+          <div class="text-xs font-semibold uppercase tracking-wider text-faint mb-2">${c.label}</div>
+          <div class="text-2xl font-bold font-mono text-foreground mb-1" style="color: ${c.color}">${c.val}</div>
+          <p class="text-xs text-muted-foreground">${c.sub}</p>
+          <div class="mt-4 pt-3 border-t border-border/40 flex items-center justify-between text-xs text-accent cursor-pointer hover:underline" onclick="showToast('Drilling into ${meta.title}...')">
+            <span>Explore dataset breakdown</span>
+            <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+          </div>
+        </div>
+      `).join('');
+    }
+    lucide.createIcons();
+  }
+};
+// Rewire risk customer rows to drawer
+const origInit = window.initializeComponents;
+window.initializeComponents = function() {
+  origInit();
+  const tableBody = document.getElementById('highest-risk-rows');
+  if (tableBody) {
+    const rows = tableBody.querySelectorAll('tr');
+    MOCK_DATA.topRiskCustomers.slice(0, 8).forEach((cust, idx) => {
+      if (rows[idx]) {
+        rows[idx].onclick = () => openCustomerDrawer(cust.id);
+      }
+    });
+  }
+};
+initializeComponents();
+</script></body></html>
