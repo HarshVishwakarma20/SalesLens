@@ -108,6 +108,30 @@ def _run_pipeline(
         )
         _s.kpis = kpis
 
+        # 9. Persist to PostgreSQL database (if connected)
+        try:
+            from app.db_service import persist_analytics_results
+            monthly_trends = compute_monthly_trends(sales_df, returns_df)
+            daily_sales = compute_daily_sales(sales_df)
+            ds_id = persist_analytics_results(
+                filename=_s.dataset_name or "uploaded_dataset",
+                file_type="raw" if _s.is_raw_input else "cleaned",
+                cleaning_summary=_s.cleaning_summary or {},
+                kpis=kpis,
+                monthly_trends=monthly_trends,
+                daily_sales=daily_sales,
+                journey_df=journey_df,
+                rfm_df=rfm_df,
+                cohort_df=cohort_df,
+                leakage_df=leakage_df,
+                product_df=product_df,
+                anomaly_df=anomaly_df,
+                risk_df=risk_df,
+            )
+            _s.dataset_id = ds_id
+        except Exception as db_exc:
+            print(f"[SalesLens DB] Database persistence skipped or warning: {db_exc}")
+
         _s.status = "ready"
 
     except Exception:  # noqa: BLE001

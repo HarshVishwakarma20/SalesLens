@@ -145,3 +145,54 @@ class TestSplitSalesReturns:
         sales, returns = split_sales_returns(cleaned)
         common = set(sales.index) & set(returns.index)
         assert len(common) == 0
+
+
+class TestDuplicateColumnsAndDateCoexistence:
+    def test_cleaned_file_with_both_invoicedate_and_date(self):
+        """Regression test: cleaned files containing both InvoiceDate and Date must not produce duplicate keys."""
+        from app.cleaning import prepare_cleaned_data
+        df = pd.DataFrame({
+            "InvoiceNo": ["536365"],
+            "StockCode": ["85123A"],
+            "CustomerID": [17850],
+            "InvoiceDate": ["2021-01-01 10:00:00"],
+            "Date": ["2021-01-01"],
+            "NetRevenue": [15.30],
+        })
+        cleaned, summary = prepare_cleaned_data(df)
+        assert cleaned.columns.is_unique
+        assert len(cleaned) == 1
+        assert "InvoiceDate" in cleaned.columns
+        assert pd.api.types.is_datetime64_any_dtype(cleaned["InvoiceDate"])
+
+    def test_duplicate_columns_deduplication(self):
+        """Input with duplicate column names must be deduplicated automatically."""
+        from app.cleaning import standardize_columns
+        df = pd.DataFrame([[1, 2, 3]], columns=["CustomerID", "CustomerID", "NetRevenue"])
+        std = standardize_columns(df)
+        assert std.columns.is_unique
+        assert list(std.columns) == ["CustomerID", "NetRevenue"]
+
+    def test_excel_upload_with_both_invoicedate_and_date_bytes(self):
+        """Simulate real Excel byte upload containing InvoiceDate, Date, Month, NetRevenue."""
+        import io
+        from app.cleaning import read_upload, prepare_cleaned_data
+        df = pd.DataFrame({
+            "CustomerID": [12345],
+            "InvoiceNo": ["500001"],
+            "StockCode": ["POST"],
+            "InvoiceDate": ["2021-03-01 12:00:00"],
+            "Date": ["2021-03-01"],
+            "Month": ["2021-03"],
+            "NetRevenue": [120.50],
+        })
+        buf = io.BytesIO()
+        df.to_excel(buf, index=False)
+        bytes_data = buf.getvalue()
+
+        parsed = read_upload(bytes_data, "upload_test.xlsx")
+        assert parsed.columns.is_unique
+        cleaned, summary = prepare_cleaned_data(parsed)
+        assert cleaned.columns.is_unique
+        assert "InvoiceDate" in cleaned.columns
+

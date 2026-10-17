@@ -5,6 +5,11 @@ export type RiskBand = 'Low' | 'Medium' | 'High' | 'Critical'
 export type UploadMode = 'cleaned' | 'raw'
 export type StepStatus = 'waiting' | 'running' | 'done'
 
+export interface ZoomRange {
+  start: number
+  end: number
+}
+
 // ─── Shared ────────────────────────────────────────────────────────────────────
 
 export interface Segment {

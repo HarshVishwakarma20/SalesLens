@@ -7,23 +7,12 @@ import { KpiGrid } from '@/components/kpi/KpiGrid'
 import { useDataset } from '@/hooks/useDataset'
 import { useDatasetStore } from '@/stores/dataset'
 import { UploadPendingState, ProcessingState, ErrorState } from '@/components/ui/pending-state'
+import { generatePdfReport } from '@/lib/pdf-report'
 import { LeakagePanel, MonthlySalesPanel, RiskCustomersPanel, SegmentMixPanel } from './OverviewPanels'
 
 export function OverviewPage() {
   const { data } = useDataset()
   const { status, error } = useDatasetStore()
-
-  if (status === 'idle') {
-    return (
-      <div className="mx-auto flex max-w-[1440px] animate-fadeIn flex-col gap-6">
-        <PageHeader
-          title="Overview"
-          description="Upload a dataset to see headline KPIs, sales trends, segments, and leakage."
-        />
-        <UploadPendingState description="Please upload a file to generate analytics." />
-      </div>
-    )
-  }
 
   if (status === 'uploading' || status === 'processing') {
     return (
@@ -49,15 +38,38 @@ export function OverviewPage() {
     )
   }
 
+  if (status === 'idle' && !data) {
+    return (
+      <div className="mx-auto flex max-w-[1440px] animate-fadeIn flex-col gap-6">
+        <PageHeader
+          title="Overview"
+          description="Upload a dataset to see headline KPIs, sales trends, segments, and leakage."
+        />
+        <UploadPendingState description="Please upload a file to generate analytics." />
+      </div>
+    )
+  }
+
+  const handleDownloadPdf = () => {
+    try {
+      toast.info('Generating Executive PDF Report...')
+      generatePdfReport(data)
+      toast.success('Executive PDF report downloaded to your files!')
+    } catch (err: any) {
+      console.error('PDF export failed:', err)
+      toast.error(`PDF generation failed: ${err?.message || 'Unknown error'}`)
+    }
+  }
+
   return (
     <div className="mx-auto flex max-w-[1440px] animate-fadeIn flex-col gap-6">
       <PageHeader
         title="Overview"
         description="Champions are 20.7% of customers and returns cost 5.12% of revenue."
         actions={
-          <Button size="sm" onClick={() => toast('Generating PDF summary report...')}>
+          <Button size="sm" onClick={handleDownloadPdf}>
             <FileText className="size-3.5" aria-hidden />
-            Summary Report
+            Summary Report (PDF)
           </Button>
         }
       />

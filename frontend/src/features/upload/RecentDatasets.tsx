@@ -10,6 +10,9 @@ import { formatInt } from '@/lib/formatters'
 import type { DatasetSummary } from '@/lib/types'
 import { cn } from '@/lib/utils'
 
+import { useFiltersStore } from '@/stores/filters'
+import { useDatasetStore } from '@/stores/dataset'
+
 export function RecentDatasets() {
   const navigate = useNavigate()
   const { data } = useRecentDatasets()
@@ -53,7 +56,13 @@ export function RecentDatasets() {
       render: (row) => (
         <button
           type="button"
-          onClick={() => (row.primary ? navigate('/overview') : toast('Loading dataset archive...'))}
+          onClick={() => {
+            useFiltersStore.getState().setDataset(row.id)
+            useDatasetStore.getState().setReady()
+            useDatasetStore.setState({ datasetName: row.name })
+            toast.success(`Active dataset set to: ${row.name}`)
+            navigate('/overview')
+          }}
           className="rounded bg-raised px-2.5 py-1 text-xs font-medium text-foreground hover:bg-border"
           aria-label={`Open ${row.name}`}
         >

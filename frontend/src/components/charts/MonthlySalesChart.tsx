@@ -1,11 +1,10 @@
 import { useMemo } from 'react'
-import type { MonthlyPoint } from '@/lib/types'
+import type { MonthlyPoint, ZoomRange } from '@/lib/types'
 import { CHART_COLOURS } from '@/lib/colours'
 import { formatAxisK } from '@/lib/formatters'
 import { EChart, baseTooltip } from './EChart'
-import { type ZoomRange } from '@/lib/types'
 
-export function MonthlySalesChart({ data, zoom }: { data: MonthlyPoint[]; zoom?: { start: number; end: number } }) {
+export function MonthlySalesChart({ data, zoom }: { data: MonthlyPoint[]; zoom?: ZoomRange }) {
   const option = useMemo(
     () => ({
       animationDuration: 700,
@@ -50,6 +49,8 @@ export function MonthlySalesChart({ data, zoom }: { data: MonthlyPoint[]; zoom?:
           type: 'slider',
           height: 14,
           bottom: 8,
+          start: zoom?.start ?? 0,
+          end: zoom?.end ?? 100,
           borderColor: 'transparent',
           backgroundColor: '#112A33',
           fillerColor: 'rgba(20,184,166,0.22)',
