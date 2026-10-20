@@ -1,7 +1,14 @@
 import jsPDF from 'jspdf'
-import autoTable from 'jspdf-autotable'
+import autoTable, { applyPlugin } from 'jspdf-autotable'
 import type { Dataset } from './types'
 import { DEMO_DATASET } from './mock-data'
+
+// Ensure autoTable plugin is registered on jsPDF constructor
+try {
+  applyPlugin(jsPDF)
+} catch {
+  // Ignore if already registered
+}
 
 function getSegmentRecommendation(name: string): string {
   switch ((name || '').toLowerCase()) {
@@ -40,8 +47,18 @@ function runAutoTable(doc: jsPDF, options: any) {
 
 /**
  * Trigger immediate browser file download directly into the user's Downloads folder.
+ * Uses official jsPDF doc.save() with persistent fallback.
  */
 function triggerBrowserDownload(doc: jsPDF, filename: string) {
+  // 1. Primary standard method: doc.save() built into jsPDF
+  try {
+    doc.save(filename)
+    return
+  } catch (saveErr) {
+    console.warn('doc.save() failed, attempting blob anchor download:', saveErr)
+  }
+
+  // 2. Fallback: Blob URL download with persistent 60s timeout
   try {
     const blob = doc.output('blob')
     const url = URL.createObjectURL(blob)
@@ -49,7 +66,7 @@ function triggerBrowserDownload(doc: jsPDF, filename: string) {
     link.href = url
     link.download = filename
     link.setAttribute('download', filename)
-    link.style.display = 'none'
+    link.rel = 'noopener'
     document.body.appendChild(link)
     link.click()
     setTimeout(() => {
@@ -59,10 +76,31 @@ function triggerBrowserDownload(doc: jsPDF, filename: string) {
       } catch {
         // cleanup ignore
       }
-    }, 1500)
+    }, 60000)
+    return
   } catch (blobErr) {
-    console.warn('Anchor blob download failed, falling back to doc.save():', blobErr)
-    doc.save(filename)
+    console.warn('Anchor blob download failed, falling back to datauristring:', blobErr)
+  }
+
+  // 3. Fallback: Data URI download
+  try {
+    const dataUri = doc.output('datauristring')
+    const link = document.createElement('a')
+    link.href = dataUri
+    link.download = filename
+    link.rel = 'noopener'
+    document.body.appendChild(link)
+    link.click()
+    setTimeout(() => {
+      try {
+        document.body.removeChild(link)
+      } catch {
+        // cleanup ignore
+      }
+    }, 60000)
+  } catch (err) {
+    console.error('All PDF download mechanisms failed:', err)
+    throw err
   }
 }
 

@@ -1,5 +1,6 @@
+import { useState } from 'react'
 import { toast } from 'sonner'
-import { FileText } from 'lucide-react'
+import { FileText, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { PageHeader } from '@/components/ui/page-header'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -13,6 +14,7 @@ import { LeakagePanel, MonthlySalesPanel, RiskCustomersPanel, SegmentMixPanel } 
 export function OverviewPage() {
   const { data } = useDataset()
   const { status, error } = useDatasetStore()
+  const [isDownloadingPdf, setIsDownloadingPdf] = useState(false)
 
   if (status === 'uploading' || status === 'processing') {
     return (
@@ -51,14 +53,21 @@ export function OverviewPage() {
   }
 
   const handleDownloadPdf = () => {
-    try {
-      toast.info('Generating Executive PDF Report...')
-      generatePdfReport(data)
-      toast.success('Executive PDF report downloaded to your files!')
-    } catch (err: any) {
-      console.error('PDF export failed:', err)
-      toast.error(`PDF generation failed: ${err?.message || 'Unknown error'}`)
-    }
+    if (isDownloadingPdf) return
+    setIsDownloadingPdf(true)
+    const toastId = toast.loading('Generating Executive PDF Report...')
+
+    setTimeout(() => {
+      try {
+        generatePdfReport(data)
+        toast.success('Executive PDF report downloaded to your files!', { id: toastId })
+      } catch (err: any) {
+        console.error('PDF export failed:', err)
+        toast.error(`PDF generation failed: ${err?.message || 'Unknown error'}`, { id: toastId })
+      } finally {
+        setIsDownloadingPdf(false)
+      }
+    }, 60)
   }
 
   return (
@@ -67,9 +76,13 @@ export function OverviewPage() {
         title="Overview"
         description="Champions are 20.7% of customers and returns cost 5.12% of revenue."
         actions={
-          <Button size="sm" onClick={handleDownloadPdf}>
-            <FileText className="size-3.5" aria-hidden />
-            Summary Report (PDF)
+          <Button size="sm" onClick={handleDownloadPdf} disabled={isDownloadingPdf}>
+            {isDownloadingPdf ? (
+              <Loader2 className="size-3.5 animate-spin" aria-hidden />
+            ) : (
+              <FileText className="size-3.5" aria-hidden />
+            )}
+            {isDownloadingPdf ? 'Generating PDF...' : 'Summary Report (PDF)'}
           </Button>
         }
       />

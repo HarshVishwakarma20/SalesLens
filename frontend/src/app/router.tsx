@@ -2,6 +2,7 @@ import { createBrowserRouter, Navigate } from 'react-router-dom'
 import { AppShell } from './layout/AppShell'
 import { DataSourcePage } from '@/features/upload/DataSourcePage'
 import { OverviewPage } from '@/features/overview/OverviewPage'
+import { ComparePage } from '@/features/compare/ComparePage'
 import { JourneyPage } from '@/features/journey/JourneyPage'
 import { SegmentsPage } from '@/features/segments/SegmentsPage'
 import { CohortsPage } from '@/features/cohorts/CohortsPage'
@@ -22,6 +23,7 @@ export const router = createBrowserRouter([
       { index: true, element: <Navigate to="/data-source" replace /> },
       { path: 'data-source', element: <DataSourcePage /> },
       { path: 'overview', element: <OverviewPage /> },
+      { path: 'compare', element: <ComparePage /> },
       { path: 'journey', element: <JourneyPage /> },
       { path: 'segments', element: <SegmentsPage /> },
       { path: 'cohorts', element: <CohortsPage /> },
