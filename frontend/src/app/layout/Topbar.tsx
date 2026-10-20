@@ -58,14 +58,16 @@ function SegmentFilter() {
 function ExportMenu({ dataset }: { dataset?: Dataset }) {
   const handleExport = (fmt: string) => {
     if (fmt === 'PDF report') {
-      try {
-        toast.info('Generating Executive PDF Report...')
-        generatePdfReport(dataset)
-        toast.success('Executive PDF report downloaded to your files!')
-      } catch (err: any) {
-        console.error('PDF export failed:', err)
-        toast.error(`PDF generation failed: ${err?.message || 'Unknown error'}`)
-      }
+      const toastId = toast.loading('Generating Executive PDF Report...')
+      setTimeout(() => {
+        try {
+          generatePdfReport(dataset)
+          toast.success('Executive PDF report downloaded to your files!', { id: toastId })
+        } catch (err: any) {
+          console.error('PDF export failed:', err)
+          toast.error(`PDF generation failed: ${err?.message || 'Unknown error'}`, { id: toastId })
+        }
+      }, 60)
     } else if (fmt === 'CSV') {
       toast.info('Downloading Dataset CSV...')
       window.open('/api/v1/datasets/export/customer_journey.csv', '_blank')

@@ -3,6 +3,7 @@ import {
   BookOpen,
   CloudUpload,
   FlaskConical,
+  GitCompareArrows,
   Grid3x3,
   LayoutDashboard,
   Package,
@@ -21,11 +22,13 @@ export interface NavItem {
   icon: LucideIcon
   description: string
   soon?: boolean
+  locked?: boolean
 }
 
 export const PRIMARY_NAV: NavItem[] = [
   { path: '/data-source', label: 'Data Source', icon: CloudUpload, description: 'Upload or pick a retail dataset to analyse.' },
   { path: '/overview', label: 'Overview', icon: LayoutDashboard, description: 'Headline KPIs, sales, segments and leakage.' },
+  { path: '/compare', label: 'Compare', icon: GitCompareArrows, description: 'Compare metrics between current and previous datasets.', locked: true },
   { path: '/journey', label: 'Customer Journey', icon: Route, description: 'First purchase to repeat - how customers progress over time.' },
   { path: '/segments', label: 'Segments', icon: Users, description: 'RFM segments with size, value and return behaviour.' },
   { path: '/cohorts', label: 'Cohorts', icon: Grid3x3, description: 'Monthly acquisition cohorts and revenue retention.' },

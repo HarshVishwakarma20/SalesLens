@@ -27,7 +27,12 @@ function NavEntry({ item, collapsed }: { item: NavItem; collapsed: boolean }) {
           <>
             <Icon className={cn('size-4 shrink-0', isActive && 'text-accent')} aria-hidden />
             {!collapsed && <span className="flex-1 truncate">{item.label}</span>}
-            {!collapsed && item.soon && (
+            {!collapsed && item.locked && (
+              <span className="flex items-center gap-1 rounded-md border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-400">
+                Locked <Lock className="size-2.5" aria-hidden />
+              </span>
+            )}
+            {!collapsed && item.soon && !item.locked && (
               <span className="flex items-center gap-1 rounded-md border border-border bg-raised px-1.5 py-0.5 text-[10px] text-faint">
                 Soon <Lock className="size-2.5" aria-hidden />
               </span>
