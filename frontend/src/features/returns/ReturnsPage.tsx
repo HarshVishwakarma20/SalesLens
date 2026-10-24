@@ -1,16 +1,16 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import ReactECharts from 'echarts-for-react'
 import { PageHeader } from '@/components/ui/page-header'
 import { InsightBanner } from '@/components/ui/insight-banner'
 import { SegmentChip } from '@/components/ui/segment-chip'
 import { DataTable } from '@/components/tables/DataTable'
-import { RETURNS_BY_PRODUCT, RETURNS_BY_SEGMENT, RETURNS_BY_MONTH } from '@/lib/mock-data'
 import { CHART_COLOURS } from '@/lib/colours'
 import { formatGBP, formatPercent } from '@/lib/formatters'
 import type { ReturnRow, SegmentName } from '@/lib/types'
 import { useDatasetStore } from '@/stores/dataset'
 import { UploadPendingState, ProcessingState, ErrorState } from '@/components/ui/pending-state'
 import { Info } from 'lucide-react'
+import { useReturnsData } from '@/hooks/useBackendData'
 
 function ExplainTip({ text }: { text: string }) {
   return (
@@ -26,9 +26,7 @@ function ExplainTip({ text }: { text: string }) {
   )
 }
 
-const PORTFOLIO_RATE = 0.0512
-
-function ReturnRateBar({ tab, rows }: { tab: 'product' | 'segment' | 'month'; rows: ReturnRow[] }) {
+function ReturnRateBar({ tab, rows, portfolioRate }: { tab: 'product' | 'segment' | 'month'; rows: ReturnRow[]; portfolioRate: number }) {
   const option = {
     backgroundColor: 'transparent',
     tooltip: {
@@ -62,12 +60,12 @@ function ReturnRateBar({ tab, rows }: { tab: 'product' | 'segment' | 'month'; ro
         type: 'bar',
         data: rows.slice(0, tab === 'product' ? 20 : rows.length).map(r => ({
           value: r.returnRate,
-          itemStyle: { color: r.returnRate > PORTFOLIO_RATE ? '#F87171' : '#14B8A6', borderRadius: [4, 4, 0, 0] },
+          itemStyle: { color: r.returnRate > portfolioRate ? '#F87171' : '#14B8A6', borderRadius: [4, 4, 0, 0] },
         })),
       },
       {
         type: 'line',
-        data: Array(Math.min(rows.length, tab === 'product' ? 20 : rows.length)).fill(PORTFOLIO_RATE),
+        data: Array(Math.min(rows.length, tab === 'product' ? 20 : rows.length)).fill(portfolioRate),
         lineStyle: { type: 'dashed', color: '#FBBF24', width: 1.5 },
         symbol: 'none',
         tooltip: { show: false },
@@ -79,8 +77,7 @@ function ReturnRateBar({ tab, rows }: { tab: 'product' | 'segment' | 'month'; ro
   return <ReactECharts option={option} style={{ height: 300 }} notMerge />
 }
 
-function SegmentShareBars() {
-  const segs = RETURNS_BY_SEGMENT
+function SegmentShareBars({ segs }: { segs: ReturnRow[] }) {
   const totalSales = segs.reduce((s, r) => s + r.sales, 0)
   const totalReturns = segs.reduce((s, r) => s + r.returns, 0)
 
@@ -90,9 +87,7 @@ function SegmentShareBars() {
     legend: { data: ['Share of sales', 'Share of returns'], textStyle: { color: 'var(--muted-foreground)', fontSize: 11 }, bottom: 0 },
     xAxis: { data: segs.map(s => s.key), axisLabel: { color: CHART_COLOURS.axis, fontSize: 11 }, axisLine: { show: false } },
     yAxis: { axisLabel: { color: CHART_COLOURS.axis, fontSize: 10, formatter: (v: number) => `${(v * 100).toFixed(0)}%` }, axisLine: { show: false }, splitLine: { lineStyle: { color: CHART_COLOURS.grid } } },
-    dataZoom: [
-      { type: 'inside' },
-    ],
+    dataZoom: [{ type: 'inside' }],
     series: [
       { name: 'Share of sales', type: 'bar', barGap: 0, data: segs.map(s => (s.sales / totalSales).toFixed(4)), itemStyle: { color: '#14B8A6', borderRadius: [3, 3, 0, 0] } },
       { name: 'Share of returns', type: 'bar', data: segs.map(s => (s.returns / totalReturns).toFixed(4)), itemStyle: { color: '#F87171', borderRadius: [3, 3, 0, 0] } },
@@ -102,19 +97,19 @@ function SegmentShareBars() {
   return <ReactECharts option={option} style={{ height: 240 }} notMerge />
 }
 
-function MonthlyLine() {
+function MonthlyLine({ byMonth, portfolioRate }: { byMonth: ReturnRow[]; portfolioRate: number }) {
   const option = {
     backgroundColor: 'transparent',
     tooltip: { trigger: 'axis', backgroundColor: 'var(--card)', borderColor: 'var(--border)', borderRadius: 12, textStyle: { color: 'var(--foreground)', fontSize: 12 } },
-    xAxis: { data: RETURNS_BY_MONTH.map(r => r.key), axisLabel: { color: CHART_COLOURS.axis, fontSize: 10 }, axisLine: { show: false } },
+    xAxis: { data: byMonth.map(r => r.key), axisLabel: { color: CHART_COLOURS.axis, fontSize: 10 }, axisLine: { show: false } },
     yAxis: { axisLabel: { color: CHART_COLOURS.axis, fontSize: 10, formatter: (v: number) => `${(v * 100).toFixed(0)}%` }, axisLine: { show: false }, splitLine: { lineStyle: { color: CHART_COLOURS.grid } } },
     dataZoom: [
       { type: 'slider', bottom: 8, height: 16, borderColor: 'var(--border)', fillerColor: 'rgba(248,113,113,0.12)', handleStyle: { color: '#F87171' }, textStyle: { color: 'var(--muted-foreground)', fontSize: 10 } },
       { type: 'inside' },
     ],
     series: [
-      { type: 'line', data: RETURNS_BY_MONTH.map(r => r.returnRate), smooth: true, lineStyle: { color: '#F87171', width: 2 }, symbol: 'circle', symbolSize: 5, itemStyle: { color: '#F87171' } },
-      { type: 'line', data: Array(RETURNS_BY_MONTH.length).fill(PORTFOLIO_RATE), lineStyle: { type: 'dashed', color: '#FBBF24', width: 1.5 }, symbol: 'none' },
+      { type: 'line', data: byMonth.map(r => r.returnRate), smooth: true, lineStyle: { color: '#F87171', width: 2 }, symbol: 'circle', symbolSize: 5, itemStyle: { color: '#F87171' } },
+      { type: 'line', data: Array(byMonth.length).fill(portfolioRate), lineStyle: { type: 'dashed', color: '#FBBF24', width: 1.5 }, symbol: 'none' },
     ],
     grid: { top: 20, bottom: 52, left: 60, right: 20 },
   }
@@ -128,6 +123,23 @@ export function ReturnsPage() {
   const [minSales, setMinSales] = useState(500)
   const [showReturnsOnly, setShowReturnsOnly] = useState(false)
   const { status, error } = useDatasetStore()
+  const { data: returnsData, isLoading } = useReturnsData()
+
+  const { byProduct, bySegment, byMonth, portfolioAvgReturnRate } = returnsData
+  const PORTFOLIO_RATE = portfolioAvgReturnRate
+
+  const kpis = useMemo(() => {
+    const totalRet = byProduct.reduce((s, r) => s + r.returns, 0)
+    const totalSales = byProduct.reduce((s, r) => s + r.sales, 0)
+    const rate = totalSales > 0 ? totalRet / totalSales : PORTFOLIO_RATE
+    const atRiskSeg = bySegment.find(s => s.key === 'At-Risk')
+    return [
+      { label: 'Return rate', value: `${(rate * 100).toFixed(2)}%`, tone: 'negative' },
+      { label: 'Returns value', value: `£${(totalRet / 1000).toFixed(0)}k`, tone: 'negative' },
+      { label: 'Sales value', value: `£${(totalSales / 1_000_000).toFixed(2)}M`, tone: 'positive' },
+      { label: 'At-Risk returns share', value: atRiskSeg ? `${(atRiskSeg.returnRate * 100).toFixed(1)}% rate` : '—', tone: 'warning' },
+    ]
+  }, [byProduct, bySegment, PORTFOLIO_RATE])
 
   if (status === 'idle') {
     return (
@@ -156,20 +168,22 @@ export function ReturnsPage() {
     )
   }
 
-  const productRows = RETURNS_BY_PRODUCT.filter(r => {
+  if (isLoading) {
+    return (
+      <div className="mx-auto flex max-w-[1440px] animate-fadeIn flex-col gap-6">
+        <PageHeader title="Returns and Leakage" description="Where is revenue leaking?" />
+        <ProcessingState />
+      </div>
+    )
+  }
+
+  const productRows = byProduct.filter(r => {
     if (!showReturnsOnly && r.sales === 0) return false
     if (r.sales < minSales && r.sales > 0) return false
     return true
   })
 
-  const activeRows: ReturnRow[] = tab === 'product' ? productRows : tab === 'segment' ? RETURNS_BY_SEGMENT : RETURNS_BY_MONTH
-
-  const kpis = [
-    { label: 'Return rate', value: '5.12%', tone: 'negative' },
-    { label: 'Returns value', value: '£471k', tone: 'negative' },
-    { label: 'Sales value', value: '£8.74M', tone: 'positive' },
-    { label: 'At-Risk returns share', value: '9.3% vs 10.3% sales', tone: 'warning' },
-  ]
+  const activeRows: ReturnRow[] = tab === 'product' ? productRows : tab === 'segment' ? bySegment : byMonth
 
   return (
     <div className="mx-auto flex max-w-[1440px] animate-fadeIn flex-col gap-6">
@@ -226,10 +240,10 @@ export function ReturnsPage() {
           <h2 className="text-sm font-semibold text-foreground">
             {tab === 'product' ? 'Return Rate by SKU' : tab === 'segment' ? 'Return Rate by Segment' : 'Return Rate by Month'}
           </h2>
-          <ExplainTip text="Bars above the dashed yellow line exceed the portfolio average return rate (5.12%). Red = above avg, Teal = below. Drag the slider to zoom in on specific items." />
+          <ExplainTip text="Bars above the dashed yellow line exceed the portfolio average return rate. Red = above avg, Teal = below. Drag the slider to zoom in on specific items." />
           <span className="ml-auto text-[10px] text-faint">Drag slider below to zoom</span>
         </div>
-        <ReturnRateBar tab={tab} rows={activeRows} />
+        <ReturnRateBar tab={tab} rows={activeRows} portfolioRate={PORTFOLIO_RATE} />
       </div>
 
       {/* DataTable */}
@@ -275,15 +289,15 @@ export function ReturnsPage() {
             <h2 className="text-sm font-semibold text-foreground">Share of Sales vs Returns by Segment</h2>
             <ExplainTip text="Compares each segment's share of total sales vs total returns. If a segment's return share exceeds its sales share, it's a disproportionate leakage source." />
           </div>
-          <SegmentShareBars />
+          <SegmentShareBars segs={bySegment} />
         </div>
         <div className="sl-card p-4" tabIndex={0}>
           <div className="flex items-center gap-2 mb-1">
             <h2 className="text-sm font-semibold text-foreground">Monthly Return Rate</h2>
             <ExplainTip text="Tracks the return rate across all months. Spikes above the dashed average line indicate months with unusually high returns worth investigating. Drag slider to zoom." />
           </div>
-          <p className="mb-3 text-xs text-muted-foreground">Dashed = 5.12% portfolio average · drag slider to zoom</p>
-          <MonthlyLine />
+          <p className="mb-3 text-xs text-muted-foreground">Dashed = {(PORTFOLIO_RATE * 100).toFixed(2)}% portfolio average · drag slider to zoom</p>
+          <MonthlyLine byMonth={byMonth} portfolioRate={PORTFOLIO_RATE} />
         </div>
       </div>
 

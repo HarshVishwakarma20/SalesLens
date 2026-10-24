@@ -34,8 +34,10 @@ async function get<T>(path: string, params?: Record<string, string | number | bo
 export interface BackendStatus {
   status: 'idle' | 'processing' | 'ready' | 'failed'
   datasetName: string | null
+  datasetId?: number | null
   isRawInput: boolean | null
   error: string | null
+  cleaningSummary?: UploadResponse['cleaningSummary'] | null
 }
 
 export interface UploadResponse {
@@ -47,15 +49,18 @@ export interface UploadResponse {
     originalRows: number
     duplicatesRemoved: number
     missingCustomerIdRemoved: number
+    missingEssentialRemoved?: number
     zeroQuantityRemoved: number
+    negativePriceRemoved?: number
     nonProductRemoved: number
     finalRows: number
     salesRows: number
     returnRows: number
     grossSales: number
-    totalReturns: number
+    returnValue?: number
+    totalReturns?: number
     netRevenue: number
-    fileType: string
+    fileType?: string
   }
 }
 

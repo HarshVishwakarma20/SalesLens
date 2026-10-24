@@ -9,6 +9,8 @@ Prefix /api/v1 is applied in main.py.
 from __future__ import annotations
 
 import io
+import math
+from datetime import datetime
 from typing import Annotated, Literal
 
 import pandas as pd
@@ -62,6 +64,27 @@ def _guard() -> None:
         raise _http_error(code, str(exc)) from exc
 
 
+def _gap_trend_label(slope: object) -> str:
+    """Map numeric gap slope to the frontend's up/down/flat enum."""
+    if slope is None:
+        return "flat"
+    try:
+        value = float(slope)
+    except (TypeError, ValueError):
+        return "flat"
+    if math.isnan(value) or math.isinf(value) or abs(value) < 1e-9:
+        return "flat"
+    return "up" if value > 0 else "down"
+
+
+def _month_short_label(raw: object) -> str:
+    text = str(raw or "")
+    try:
+        return datetime.strptime(text[:7], "%Y-%m").strftime("%b")
+    except ValueError:
+        return text
+
+
 # ---------------------------------------------------------------------------
 # Health
 # ---------------------------------------------------------------------------
@@ -112,14 +135,35 @@ async def upload_dataset(file: UploadFile = File(...)) -> UploadResponse:
     )
 
 
+def _cleaning_summary_from_dataset(ds: object) -> dict:
+    return {
+        "originalRows": getattr(ds, "original_rows", None) or 0,
+        "finalRows": getattr(ds, "final_rows", None) or 0,
+        "salesRows": getattr(ds, "sales_rows", None) or 0,
+        "returnRows": getattr(ds, "return_rows", None) or 0,
+        "grossSales": getattr(ds, "gross_sales", None) or 0,
+        "returnValue": getattr(ds, "total_returns", None) or 0,
+        "netRevenue": getattr(ds, "net_revenue", None) or 0,
+        "duplicatesRemoved": 0,
+        "missingCustomerIdRemoved": 0,
+        "missingEssentialRemoved": 0,
+        "zeroQuantityRemoved": 0,
+        "negativePriceRemoved": 0,
+        "nonProductRemoved": 0,
+        "fileType": getattr(ds, "file_type", None),
+    }
+
+
 @router.get("/datasets/status", response_model=StatusResponse, tags=["Dataset"])
 def get_status() -> StatusResponse:
     if _s.status in ("ready", "processing", "failed"):
         return StatusResponse(
             status=_s.status,
             datasetName=_s.dataset_name,
+            datasetId=_s.dataset_id,
             isRawInput=_s.is_raw_input,
             error=_s.error,
+            cleaningSummary=_s.cleaning_summary,
         )
 
     # Check PostgreSQL for active persisted dataset
@@ -134,8 +178,10 @@ def get_status() -> StatusResponse:
                     return StatusResponse(
                         status="ready",
                         datasetName=active_ds.dataset_name,
+                        datasetId=active_ds.id,
                         isRawInput=active_ds.file_type == "raw",
                         error=None,
+                        cleaningSummary=_cleaning_summary_from_dataset(active_ds),
                     )
         except Exception:
             pass
@@ -143,8 +189,10 @@ def get_status() -> StatusResponse:
     return StatusResponse(
         status=_s.status,
         datasetName=_s.dataset_name,
+        datasetId=_s.dataset_id,
         isRawInput=_s.is_raw_input,
         error=_s.error,
+        cleaningSummary=_s.cleaning_summary,
     )
 
 
@@ -193,7 +241,11 @@ def overview() -> dict:
         except Exception as exc:  # noqa: BLE001
             raise _http_error(500, str(exc)) from exc
 
-    # Check PostgreSQL for active persisted dataset
+    # While a new file is processing, never serve the previous persisted dataset.
+    if _s.status in ("processing", "failed"):
+        _guard()
+
+    # Idle (e.g. after restart): Check PostgreSQL for active persisted dataset
     from app.database import get_session_factory
     from app.db_service import get_active_dataset, get_stored_overview
     factory = get_session_factory()
@@ -228,18 +280,33 @@ def journey(
     order: Literal["asc", "desc"] = Query("desc"),
 ) -> dict:
     _guard()
-    df = _s.journey_df.copy()
+    df = _s.journey_df.copy() if _s.journey_df is not None else pd.DataFrame()
 
     if sort_by in df.columns:
         df = df.sort_values(sort_by, ascending=(order == "asc"))
 
+    def _mean(col: str) -> float:
+        if col not in df.columns or df.empty:
+            return 0.0
+        val = df[col].dropna().mean()
+        return 0.0 if pd.isna(val) else round(float(val), 2)
+
     # Summary stats
     summary = {
         "totalCustomers": int(len(df)),
-        "avgOrderCount": round(float(df["OrderCount"].mean()), 2),
-        "avgTotalRevenue": round(float(df["TotalRevenue"].mean()), 2),
-        "avgGapDays": round(float(df["AvgGap"].dropna().mean()), 2),
+        "avgOrderCount": _mean("OrderCount"),
+        "avgTotalRevenue": _mean("TotalRevenue"),
+        "avgGapDays": _mean("AvgGap"),
     }
+
+    rfm_seg = {}
+    risk_band = {}
+    risk_score = {}
+    if _s.rfm_df is not None and not _s.rfm_df.empty:
+        rfm_seg = _s.rfm_df.set_index("CustomerID")["Segment"].to_dict()
+    if _s.risk_df is not None and not _s.risk_df.empty:
+        risk_band = _s.risk_df.set_index("CustomerID")["RiskBand"].to_dict()
+        risk_score = _s.risk_df.set_index("CustomerID")["RiskScore"].to_dict()
 
     records = df.to_dict(orient="records")
     # Convert dates and nullable ints to JSON-safe types
@@ -247,7 +314,15 @@ def journey(
         for k in ("FirstPurchaseDate", "LastPurchaseDate"):
             if pd.notna(rec.get(k)):
                 rec[k] = str(rec[k])[:10]
+            else:
+                rec[k] = None
         rec["CustomerID"] = int(rec["CustomerID"])
+        rec["Segment"] = str(rfm_seg.get(rec["CustomerID"], rec.get("Segment") or "Promising"))
+        rec["RiskBand"] = str(risk_band.get(rec["CustomerID"], rec.get("RiskBand") or "Low"))
+        rec["RiskScore"] = float(risk_score.get(rec["CustomerID"], rec.get("RiskScore") or 0) or 0)
+        slope = rec.get("GapTrend")
+        rec["GapTrendSlope"] = slope
+        rec["GapTrend"] = _gap_trend_label(slope)
 
     page_result = paginate(records, page, page_size)
     page_result["summary"] = summary
@@ -297,6 +372,10 @@ def cohorts() -> dict:
     _guard()
     df = _s.cohort_df.copy()
     records = df.to_dict(orient="records")
+    for rec in records:
+        if rec.get("RetentionRevPct") is None and rec.get("RevenuePct") is not None:
+            rec["RetentionRevPct"] = rec["RevenuePct"]
+        rec["CohortMonth"] = str(rec.get("CohortMonth", ""))
     # Pivot for a quick heatmap representation as well
     try:
         pivot = (
@@ -362,7 +441,9 @@ def products(
     order: Literal["asc", "desc"] = Query("desc"),
 ) -> dict:
     _guard()
-    df = _s.product_df.copy()
+    df = _s.product_df.copy() if _s.product_df is not None else pd.DataFrame()
+    if not df.empty:
+        df = df.rename(columns={"ReturnValue": "ReturnedValue", "BuyerCount": "Buyers"})
 
     if search:
         mask = (
@@ -437,9 +518,19 @@ def anomalies(
         df = df[df["Flagged"]]
 
     records = df.copy()
-    records["Date"] = records["Date"].astype(str)
-    # AffectedCustomerIDs is already a list of ints; fine for JSON
-    records_list = records.to_dict(orient="records")
+    if records.empty:
+        records_list = []
+    else:
+        records["Date"] = records["Date"].astype(str)
+        if "ZScore" not in records.columns and "z_score" in records.columns:
+            records["ZScore"] = records["z_score"]
+        if "Direction" not in records.columns and "AnomalyType" in records.columns:
+            records["Direction"] = records["AnomalyType"]
+        if "Mean" not in records.columns and "mean" in records.columns:
+            records["Mean"] = records["mean"]
+        if "Std" not in records.columns and "std" in records.columns:
+            records["Std"] = records["std"]
+        records_list = records.to_dict(orient="records")
 
     flagged_count = int(df["Flagged"].sum())
     return sanitize(
@@ -508,9 +599,21 @@ def risk(
         df = df[df["RiskBand"].str.lower() == band.lower()]
 
     records = df.to_dict(orient="records")
+    rev_map = {}
+    seg_map = {}
+    if _s.journey_df is not None and not _s.journey_df.empty:
+        rev_map = _s.journey_df.set_index("CustomerID")["TotalRevenue"].to_dict()
+    if _s.rfm_df is not None and not _s.rfm_df.empty:
+        seg_map = _s.rfm_df.set_index("CustomerID")["Segment"].to_dict()
     for rec in records:
         rec["CustomerID"] = int(rec["CustomerID"])
         rec["RiskBand"] = str(rec["RiskBand"])
+        rec["RFMDecay"] = rec.get("RFMDecay", rec.get("rfm_decay", 0))
+        rec["ReturnRate"] = rec.get("ReturnRate", rec.get("return_rate", 0))
+        rec["GapTrend"] = rec.get("gap_trend", rec.get("GapTrend", 0))
+        rec["Anomaly"] = rec.get("Anomaly", rec.get("anomaly", 0))
+        rec["Segment"] = str(seg_map.get(rec["CustomerID"], rec.get("Segment") or "Promising"))
+        rec["TotalRevenue"] = float(rev_map.get(rec["CustomerID"], rec.get("TotalRevenue") or 0) or 0)
 
     page_result = paginate(records, page, page_size)
     page_result["weights"] = weights

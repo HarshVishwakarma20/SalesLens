@@ -3,13 +3,12 @@ import ReactECharts from 'echarts-for-react'
 import { PageHeader } from '@/components/ui/page-header'
 import { InsightBanner } from '@/components/ui/insight-banner'
 import { DataTable } from '@/components/tables/DataTable'
-import { COHORT_ROWS } from '@/lib/mock-data'
 import { CHART_COLOURS } from '@/lib/colours'
 import { useDatasetStore } from '@/stores/dataset'
 import { UploadPendingState, ProcessingState, ErrorState } from '@/components/ui/pending-state'
 import { Info } from 'lucide-react'
-
-const MONTHS = Array.from({ length: 13 }, (_, i) => `M${i}`)
+import { useCohortsData } from '@/hooks/useBackendData'
+import type { CohortRow } from '@/lib/types'
 
 function ExplainTip({ text }: { text: string }) {
   return (
@@ -25,9 +24,11 @@ function ExplainTip({ text }: { text: string }) {
   )
 }
 
-function CohortHeatmap({ mode, showAbsolute }: { mode: 'customer' | 'revenue'; showAbsolute: boolean }) {
+function CohortHeatmap({ mode, showAbsolute, cohortRows }: { mode: 'customer' | 'revenue'; showAbsolute: boolean; cohortRows: CohortRow[] }) {
   const [focusCell, setFocusCell] = useState<string | null>(null)
   const maxVal = 100
+  const maxMonths = Math.max(...cohortRows.map(r => r.retention.length), 13)
+  const MONTHS = Array.from({ length: maxMonths }, (_, i) => `M${i}`)
 
   return (
     <div className="w-full overflow-auto rounded-xl" style={{ maxHeight: 420 }}>
@@ -42,7 +43,7 @@ function CohortHeatmap({ mode, showAbsolute }: { mode: 'customer' | 'revenue'; s
           </tr>
         </thead>
         <tbody>
-          {COHORT_ROWS.map((row) => {
+          {cohortRows.map((row) => {
             const data = mode === 'customer' ? row.retention : row.revenue
             return (
               <tr key={row.label}>
@@ -65,9 +66,8 @@ function CohortHeatmap({ mode, showAbsolute }: { mode: 'customer' | 'revenue'; s
                       onClick={() => setFocusCell(isFocused ? null : cellKey)}
                       onKeyDown={e => e.key === 'Enter' && setFocusCell(isFocused ? null : cellKey)}
                       title={`${row.label} M${mi}: ${val.toFixed(1)}%${isLast ? ' | Partial month' : ''}`}
-                      className={`h-[34px] w-12 rounded-md text-center text-[10px] font-semibold transition-all cursor-pointer select-none ${
-                        isLast ? 'ring-1 ring-dashed ring-border' : ''
-                      } ${isFocused ? 'ring-2 ring-accent scale-110 z-10 relative' : 'hover:scale-110 hover:ring-1 hover:ring-accent/60'}`}
+                      className={`h-[34px] w-12 rounded-md text-center text-[10px] font-semibold transition-all cursor-pointer select-none ${isLast ? 'ring-1 ring-dashed ring-border' : ''
+                        } ${isFocused ? 'ring-2 ring-accent scale-110 z-10 relative' : 'hover:scale-110 hover:ring-1 hover:ring-accent/60'}`}
                       style={{
                         background: `rgba(20,184,166,${0.06 + intensity * 0.6})`,
                         color: intensity > 0.5 ? 'var(--foreground)' : 'var(--muted-foreground)',
@@ -86,8 +86,8 @@ function CohortHeatmap({ mode, showAbsolute }: { mode: 'customer' | 'revenue'; s
   )
 }
 
-function RetentionWaterfallChart() {
-  const cohortAvg = COHORT_ROWS.map((row) => ({
+function RetentionWaterfallChart({ cohortRows }: { cohortRows: CohortRow[] }) {
+  const cohortAvg = cohortRows.map((row) => ({
     month: row.label,
     val: row.retention[row.retention.length - 1] ?? 0,
   }))
@@ -95,7 +95,7 @@ function RetentionWaterfallChart() {
   const option = {
     backgroundColor: 'transparent',
     tooltip: { trigger: 'axis', backgroundColor: 'var(--card)', borderColor: 'var(--border)', borderRadius: 12, textStyle: { color: 'var(--foreground)', fontSize: 12 } },
-    xAxis: { data: COHORT_ROWS.map(r => r.label), axisLabel: { color: CHART_COLOURS.axis, fontSize: 10, rotate: 30 }, axisLine: { show: false } },
+    xAxis: { data: cohortRows.map(r => r.label), axisLabel: { color: CHART_COLOURS.axis, fontSize: 10, rotate: 30 }, axisLine: { show: false } },
     yAxis: { axisLabel: { color: CHART_COLOURS.axis, fontSize: 11, formatter: (v: number) => `${v}%` }, axisLine: { show: false }, splitLine: { lineStyle: { color: CHART_COLOURS.grid } } },
     dataZoom: [
       { type: 'slider', bottom: 8, height: 18, borderColor: 'var(--border)', fillerColor: 'rgba(20,184,166,0.12)', handleStyle: { color: '#14B8A6' }, textStyle: { color: 'var(--muted-foreground)', fontSize: 10 } },
@@ -112,7 +112,10 @@ function RetentionWaterfallChart() {
   return <ReactECharts option={option} style={{ height: 280 }} notMerge />
 }
 
-function RetentionCurvesChart({ mode }: { mode: 'customer' | 'revenue' }) {
+function RetentionCurvesChart({ mode, cohortRows }: { mode: 'customer' | 'revenue'; cohortRows: CohortRow[] }) {
+  const maxMonths = Math.max(...cohortRows.map(r => r.retention.length), 13)
+  const MONTHS = Array.from({ length: maxMonths }, (_, i) => `M${i}`)
+
   const option = {
     backgroundColor: 'transparent',
     tooltip: { trigger: 'axis', backgroundColor: 'var(--card)', borderColor: 'var(--border)', borderRadius: 12, textStyle: { color: 'var(--foreground)', fontSize: 11 } },
@@ -123,7 +126,7 @@ function RetentionCurvesChart({ mode }: { mode: 'customer' | 'revenue' }) {
       { type: 'slider', bottom: 8, height: 16, borderColor: 'var(--border)', fillerColor: 'rgba(20,184,166,0.12)', handleStyle: { color: '#14B8A6' }, textStyle: { color: 'var(--muted-foreground)', fontSize: 10 } },
       { type: 'inside' },
     ],
-    series: COHORT_ROWS.slice(0, 6).map((row, i) => {
+    series: cohortRows.slice(0, 6).map((row, i) => {
       const data = (mode === 'customer' ? row.retention : row.revenue).map((v, mi) => ({ value: v, symbol: mi === (row.retention.length - 1) ? 'emptyCircle' : 'none' }))
       const hue = i * 45
       return {
@@ -145,6 +148,7 @@ export function CohortsPage() {
   const [mode, setMode] = useState<'customer' | 'revenue'>('customer')
   const [showAbsolute, setShowAbsolute] = useState(false)
   const { status, error } = useDatasetStore()
+  const { data: cohortRows, isLoading } = useCohortsData()
 
   if (status === 'idle') {
     return (
@@ -169,6 +173,15 @@ export function CohortsPage() {
       <div className="mx-auto flex max-w-[1440px] animate-fadeIn flex-col gap-6">
         <PageHeader title="Cohorts and Retention" description="Do customers, and their money, come back?" />
         <ErrorState message={error ?? 'Processing failed. Please try again.'} />
+      </div>
+    )
+  }
+
+  if (isLoading) {
+    return (
+      <div className="mx-auto flex max-w-[1440px] animate-fadeIn flex-col gap-6">
+        <PageHeader title="Cohorts and Retention" description="Do customers, and their money, come back?" />
+        <ProcessingState />
       </div>
     )
   }
@@ -212,7 +225,7 @@ export function CohortsPage() {
           </div>
           <span className="text-xs text-faint">{mode === 'customer' ? '% of original cohort still active' : '% of month-0 revenue retained'}</span>
         </div>
-        <CohortHeatmap mode={mode} showAbsolute={showAbsolute} />
+        <CohortHeatmap mode={mode} showAbsolute={showAbsolute} cohortRows={cohortRows} />
       </div>
 
       {/* Waterfall + Curves */}
@@ -226,7 +239,7 @@ export function CohortsPage() {
             <span className="rounded-full border border-negative/30 bg-negative/10 px-2 py-0.5 text-negative text-[10px]">Biggest drop-off: month 0 → 1</span>
             <span className="ml-2 text-faint">· drag slider to zoom</span>
           </p>
-          <RetentionWaterfallChart />
+          <RetentionWaterfallChart cohortRows={cohortRows} />
         </div>
         <div className="sl-card p-4" tabIndex={0}>
           <div className="flex items-center gap-2 mb-1">
@@ -234,7 +247,7 @@ export function CohortsPage() {
             <ExplainTip text="Each line tracks how a cohort's retention evolves over 12 months. Hover a line to focus it. Drag the slider to zoom into specific months." />
           </div>
           <p className="mb-3 text-xs text-muted-foreground">First 6 cohorts · drag slider or scroll to zoom</p>
-          <RetentionCurvesChart mode={mode} />
+          <RetentionCurvesChart mode={mode} cohortRows={cohortRows} />
         </div>
       </div>
 
@@ -245,7 +258,7 @@ export function CohortsPage() {
           <ExplainTip text="Sortable table showing M1, M3, M6, M12 retention milestones for each cohort. Click column headers to sort." />
         </div>
         <DataTable
-          rows={COHORT_ROWS.map(r => ({ cohort: r.label, size: r.size, m1: r.retention[1] ?? 0, m3: r.retention[3] ?? 0, m6: r.retention[6] ?? 0, m12: r.retention[12] ?? 0 }))}
+          rows={cohortRows.map(r => ({ cohort: r.label, size: r.size, m1: r.retention[1] ?? 0, m3: r.retention[3] ?? 0, m6: r.retention[6] ?? 0, m12: r.retention[12] ?? 0 }))}
           rowKey={r => r.cohort}
           columns={[
             { key: 'cohort', header: 'Cohort', render: r => r.cohort },

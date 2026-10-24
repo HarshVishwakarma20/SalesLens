@@ -1,14 +1,14 @@
 import { useMemo } from 'react'
-import type { MonthlyPoint, ZoomRange } from '@/lib/types'
+import type { MonthlyPoint } from '@/lib/types'
 import { CHART_COLOURS } from '@/lib/colours'
 import { formatAxisK } from '@/lib/formatters'
 import { EChart, baseTooltip } from './EChart'
 
-export function MonthlySalesChart({ data, zoom }: { data: MonthlyPoint[]; zoom?: ZoomRange }) {
+export function MonthlySalesChart({ data }: { data: MonthlyPoint[] }) {
   const option = useMemo(
     () => ({
       animationDuration: 700,
-      grid: { left: 44, right: 36, top: 24, bottom: 64 },
+      grid: { left: 44, right: 36, top: 24, bottom: 28 },
       tooltip: {
         ...baseTooltip,
         trigger: 'axis',
@@ -44,24 +44,7 @@ export function MonthlySalesChart({ data, zoom }: { data: MonthlyPoint[]; zoom?:
           axisLabel: { color: CHART_COLOURS.returnRate, fontSize: 9, fontFamily: 'JetBrains Mono', formatter: '{value}%' },
         },
       ],
-      dataZoom: [
-        {
-          type: 'slider',
-          height: 14,
-          bottom: 8,
-          start: zoom?.start ?? 0,
-          end: zoom?.end ?? 100,
-          borderColor: 'transparent',
-          backgroundColor: '#112A33',
-          fillerColor: 'rgba(20,184,166,0.22)',
-          dataBackground: { lineStyle: { color: 'transparent' }, areaStyle: { color: 'transparent' } },
-          selectedDataBackground: { lineStyle: { color: 'transparent' }, areaStyle: { color: 'transparent' } },
-          handleStyle: { color: '#14B8A6', borderColor: '#14B8A6' },
-          moveHandleSize: 0,
-          showDetail: false,
-          brushSelect: false,
-        },
-      ],
+
       series: [
         {
           name: 'Sales',

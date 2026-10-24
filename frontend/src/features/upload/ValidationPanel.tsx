@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { api } from '@/lib/api'
 import { useDatasetStore } from '@/stores/dataset'
+import { useFiltersStore } from '@/stores/filters'
 import { CLEANED_COLUMNS, RAW_COLUMNS } from '@/lib/mock-data'
 import type { UploadMode } from '@/lib/types'
 import { cn } from '@/lib/utils'
@@ -32,6 +33,7 @@ export function ValidationPanel({ file, mode }: ValidationPanelProps) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const store = useDatasetStore()
+  const filtersStore = useFiltersStore()
   const columns = mode === 'cleaned' ? CLEANED_COLUMNS : RAW_COLUMNS
 
   const [phase, setPhase] = useState<'idle' | 'uploading' | 'processing' | 'done' | 'failed'>('idle')
@@ -54,13 +56,17 @@ export function ValidationPanel({ file, mode }: ValidationPanelProps) {
 
   useEffect(() => () => clearTimers(), [])
 
-  // When a new file is selected (panel mounts fresh), reset the store so
-  // analytics pages immediately clear their stale data from the previous upload.
+  // When a new file is selected (panel mounts fresh), reset stores and clear
+  // all cached query data so stale results from the previous upload are gone.
   useEffect(() => {
     if (store.status === 'ready' || store.status === 'failed') {
       store.reset()
-      queryClient.clear()
     }
+    // Reset the dataset query key back to the neutral default so any cached
+    // response is invalidated. The key will be updated to the new filename
+    // once processing succeeds (see startPolling below).
+    filtersStore.setDataset('uci-demo')
+    queryClient.clear()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -85,8 +91,13 @@ export function ValidationPanel({ file, mode }: ValidationPanelProps) {
           clearTimers()
           setPhase('done')
           store.setReady()
-          // Invalidate all analytics queries so they refetch fresh data
-          await queryClient.invalidateQueries()
+          // Update the dataset query key to the uploaded filename so that
+          // React Query fetches fresh data for the new dataset, not a cached
+          // response for the previous one.
+          filtersStore.setDataset(file.name)
+          // Use refetchQueries (not invalidateQueries) so the refetch happens
+          // immediately rather than lazily on the next component focus/mount.
+          await queryClient.refetchQueries()
           toast.success('Dataset ready! Dashboard populated.')
         } else if (status.status === 'failed') {
           clearTimers()

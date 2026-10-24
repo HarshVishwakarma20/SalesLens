@@ -13,9 +13,11 @@ export function Providers({ children }: { children: ReactNode }) {
     api.getStatus().then((res) => {
       if (res.status === 'ready') {
         useDatasetStore.getState().setReady()
-        if (res.datasetName) {
-          useDatasetStore.setState({ datasetName: res.datasetName })
-        }
+        useDatasetStore.setState({
+          datasetName: res.datasetName ?? useDatasetStore.getState().datasetName,
+          isRawInput: res.isRawInput ?? useDatasetStore.getState().isRawInput,
+          cleaningSummary: res.cleaningSummary ?? useDatasetStore.getState().cleaningSummary,
+        })
       }
     }).catch(() => {})
   }, [])

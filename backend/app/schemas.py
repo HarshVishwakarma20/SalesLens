@@ -44,8 +44,10 @@ class UploadResponse(BaseModel):
 class StatusResponse(BaseModel):
     status: str                     # idle | processing | ready | failed
     datasetName: Optional[str] = None
+    datasetId: Optional[int] = None
     isRawInput: Optional[bool] = None
     error: Optional[str] = None
+    cleaningSummary: Optional[dict[str, Any]] = None
 
 
 # ---------------------------------------------------------------------------

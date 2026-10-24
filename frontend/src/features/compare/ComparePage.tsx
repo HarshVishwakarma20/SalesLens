@@ -66,7 +66,7 @@ export function ComparePage() {
 
     return {
       animationDuration: 700,
-      grid: { left: 54, right: 28, top: 32, bottom: 40 },
+      grid: { left: 60, right: 28, top: 36, bottom: 28 },
       legend: {
         top: 0,
         right: 10,
@@ -164,7 +164,7 @@ export function ComparePage() {
 
     return {
       animationDuration: 700,
-      grid: { left: 44, right: 24, top: 32, bottom: 40 },
+      grid: { left: 50, right: 24, top: 36, bottom: 60 },
       legend: {
         top: 0,
         right: 10,
@@ -183,8 +183,9 @@ export function ComparePage() {
         axisLine: { lineStyle: { color: '#1B3A45' } },
         axisLabel: {
           color: CHART_COLOURS.axis,
-          fontSize: 10,
+          fontSize: 9,
           interval: 0,
+          rotate: 30,
         },
       },
       yAxis: {
@@ -202,6 +203,7 @@ export function ComparePage() {
           type: 'bar',
           data: prevCounts,
           barGap: '20%',
+          barMaxWidth: 28,
           itemStyle: {
             color: '#475569',
             borderRadius: [4, 4, 0, 0],
@@ -211,6 +213,7 @@ export function ComparePage() {
           name: 'Current Run',
           type: 'bar',
           data: curCounts,
+          barMaxWidth: 28,
           itemStyle: {
             color: '#0EA5E9',
             borderRadius: [4, 4, 0, 0],
@@ -538,16 +541,16 @@ export function ComparePage() {
       </div>
 
       {/* Visual Comparison Charts */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Monthly Sales Trajectory Comparison */}
-        <div className="lg:col-span-7">
+        <div>
           <Card>
             <CardHeader
               title="Monthly Sales Growth Trajectory"
               description="Gross sales comparison by sequence month"
               actions={<Badge tone="neutral">Dual Series</Badge>}
             />
-            <div className="h-72 w-full mt-2">
+            <div className="h-80 w-full mt-2">
               <EChart
                 option={monthlyChartOption}
                 ariaLabel="Monthly Sales Growth Trajectory Comparison Chart"
@@ -557,14 +560,14 @@ export function ComparePage() {
         </div>
 
         {/* Customer Segment Migration Comparison */}
-        <div className="lg:col-span-5">
+        <div>
           <Card>
             <CardHeader
               title="Customer Segment Migration"
               description="Customer count shift across lifecycle segments"
               actions={<Badge tone="neutral">RFM Shift</Badge>}
             />
-            <div className="h-72 w-full mt-2">
+            <div className="h-80 w-full mt-2">
               <EChart
                 option={segmentChartOption}
                 ariaLabel="Customer Segment Migration Comparison Chart"

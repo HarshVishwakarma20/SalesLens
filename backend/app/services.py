@@ -52,17 +52,28 @@ _s = _state_module.state
 # Internal pipeline (runs in background thread)
 # ---------------------------------------------------------------------------
 
+def _is_current(generation: int) -> bool:
+    """True only if this pipeline still owns the in-memory dataset."""
+    return _s.generation == generation
+
+
 def _run_pipeline(
     sales_df: pd.DataFrame,
     returns_df: pd.DataFrame,
+    generation: int,
 ) -> None:
     """
     Execute all analytics in sequence.  Called inside a background thread.
     Updates state as each stage completes.
     """
     try:
+        if not _is_current(generation):
+            return
+
         # 1. Customer journey
         journey_df = build_customer_journey(sales_df)
+        if not _is_current(generation):
+            return
         _s.journey_df = journey_df
 
         # 2. RFM
@@ -75,38 +86,56 @@ def _run_pipeline(
             revenue_col="LineValue",
             ref_date=ref_date,
         )
+        if not _is_current(generation):
+            return
         _s.rfm_df = rfm_df
 
         # 3. Cohort retention
         cohort_df = cohort_retention(sales_df, journey_df)
+        if not _is_current(generation):
+            return
         _s.cohort_df = cohort_df
 
         # 4. Returns intelligence
         leakage_df, cust_return_rate, portfolio_avg = returns_intelligence(
             sales_df, returns_df, rfm_df
         )
+        if not _is_current(generation):
+            return
         _s.leakage_df = leakage_df
         _s.cust_return_rate = cust_return_rate
 
         # 5. Product contribution
         product_df = product_contribution(sales_df, returns_df)
+        if not _is_current(generation):
+            return
         _s.product_df = product_df
 
         # 6. Anomaly detection
         anomaly_df = anomaly_detection(sales_df)
+        if not _is_current(generation):
+            return
         _s.anomaly_df = anomaly_df
 
         # 7. Risk scores
         risk_df = customer_risk_score(
             rfm_df, cust_return_rate, journey_df, anomaly_df, sales_df
         )
+        if not _is_current(generation):
+            return
         _s.risk_df = risk_df
 
         # 8. Headline KPIs
         kpis = compute_headline_kpis(
             rfm_df, cohort_df, journey_df, sales_df, returns_df
         )
+        if not _is_current(generation):
+            return
         _s.kpis = kpis
+
+        persist_name = _s.dataset_name or "uploaded_dataset"
+        persist_type = "raw" if _s.is_raw_input else "cleaned"
+        persist_summary = _s.cleaning_summary or {}
 
         # 9. Persist to PostgreSQL database (if connected)
         try:
@@ -114,9 +143,9 @@ def _run_pipeline(
             monthly_trends = compute_monthly_trends(sales_df, returns_df)
             daily_sales = compute_daily_sales(sales_df)
             ds_id = persist_analytics_results(
-                filename=_s.dataset_name or "uploaded_dataset",
-                file_type="raw" if _s.is_raw_input else "cleaned",
-                cleaning_summary=_s.cleaning_summary or {},
+                filename=persist_name,
+                file_type=persist_type,
+                cleaning_summary=persist_summary,
                 kpis=kpis,
                 monthly_trends=monthly_trends,
                 daily_sales=daily_sales,
@@ -128,15 +157,18 @@ def _run_pipeline(
                 anomaly_df=anomaly_df,
                 risk_df=risk_df,
             )
-            _s.dataset_id = ds_id
+            if _is_current(generation):
+                _s.dataset_id = ds_id
         except Exception as db_exc:
             print(f"[SalesLens DB] Database persistence skipped or warning: {db_exc}")
 
-        _s.status = "ready"
+        if _is_current(generation):
+            _s.status = "ready"
 
     except Exception:  # noqa: BLE001
-        _s.status = "failed"
-        _s.error = traceback.format_exc()
+        if _is_current(generation):
+            _s.status = "failed"
+            _s.error = traceback.format_exc()
         traceback.print_exc()
 
 
@@ -151,8 +183,10 @@ def process_upload(file_bytes: bytes, filename: str) -> dict[str, Any]:
     Returns a dict with fileType and cleaningSummary for the upload response.
     Raises ValueError with a user-friendly message on validation failures.
     """
-    # Reset any previous run
+    # Reset any previous run and invalidate in-flight pipelines
     _s.reset()
+    _s.generation += 1
+    generation = _s.generation
     _s.status = "processing"
     _s.dataset_name = filename
 
@@ -198,8 +232,8 @@ def process_upload(file_bytes: bytes, filename: str) -> dict[str, Any]:
     _s.returns_df = returns_df
     _s.cleaning_summary = cleaning_summary
 
-    # Fire-and-forget background pipeline
-    _executor.submit(_run_pipeline, sales_df, returns_df)
+    # Fire-and-forget background pipeline (generation guards stale writes)
+    _executor.submit(_run_pipeline, sales_df, returns_df, generation)
 
     return {"fileType": file_type, "cleaningSummary": cleaning_summary}
 

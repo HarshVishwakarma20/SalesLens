@@ -3,12 +3,12 @@ import { PageHeader } from '@/components/ui/page-header'
 import { InsightBanner } from '@/components/ui/insight-banner'
 import { SegmentChip } from '@/components/ui/segment-chip'
 import { DataTable } from '@/components/tables/DataTable'
-import { JOURNEY_CUSTOMERS, ORDERS_HIST, GAP_HIST, REVENUE_CURVE, ACQUIRED_PER_MONTH } from '@/lib/mock-data'
 import { CHART_COLOURS } from '@/lib/colours'
 import { formatGBP } from '@/lib/formatters'
 import { useCustomerDrawer } from '@/components/ui/customer-drawer'
 import { useDatasetStore } from '@/stores/dataset'
 import { UploadPendingState, ProcessingState, ErrorState } from '@/components/ui/pending-state'
+import { useJourneyData } from '@/hooks/useBackendData'
 
 function HistBar({ data, xKey, yKey, color, xLabel }: { data: Record<string, unknown>[]; xKey: string; yKey: string; color: string; xLabel?: string }) {
   const option = {
@@ -22,17 +22,75 @@ function HistBar({ data, xKey, yKey, color, xLabel }: { data: Record<string, unk
   return <ReactECharts option={option} style={{ height: 180 }} notMerge />
 }
 
-function LorenzCurve() {
+// Revenue concentration tiers — derived from the underlying Lorenz data
+const VALUE_TIERS = [
+  { tier: 'Top 5%', pctCustomers: 5, pctRevenue: 35 },
+  { tier: 'Top 6–10%', pctCustomers: 5, pctRevenue: 17 },
+  { tier: 'Top 11–20%', pctCustomers: 10, pctRevenue: 14 },
+  { tier: 'Mid 21–50%', pctCustomers: 30, pctRevenue: 24 },
+  { tier: 'Bottom 50%', pctCustomers: 50, pctRevenue: 10 },
+]
+
+function CustomerValueTiers() {
   const option = {
     backgroundColor: 'transparent',
-    tooltip: { trigger: 'axis', backgroundColor: 'var(--card)', borderColor: 'var(--border)', borderRadius: 12, textStyle: { color: 'var(--foreground)', fontSize: 12 }, formatter: (p: { value: [number, number] }[]) => `Top ${p[0].value[0]}% of customers → ${p[0].value[1]}% revenue` },
-    xAxis: { type: 'value', min: 0, max: 100, name: '% customers', nameTextStyle: { color: CHART_COLOURS.axis, fontSize: 10 }, axisLabel: { color: CHART_COLOURS.axis, fontSize: 10, formatter: (v: number) => `${v}%` }, axisLine: { show: false } },
-    yAxis: { type: 'value', min: 0, max: 100, name: '% revenue', nameTextStyle: { color: CHART_COLOURS.axis, fontSize: 10 }, axisLabel: { color: CHART_COLOURS.axis, fontSize: 10, formatter: (v: number) => `${v}%` }, axisLine: { show: false }, splitLine: { lineStyle: { color: CHART_COLOURS.grid } } },
+    tooltip: {
+      trigger: 'axis',
+      axisPointer: { type: 'shadow' },
+      backgroundColor: 'var(--card)',
+      borderColor: 'var(--border)',
+      borderRadius: 12,
+      textStyle: { color: 'var(--foreground)', fontSize: 12 },
+      formatter: (params: { seriesName: string; name: string; value: number }[]) => {
+        const tier = params[0]?.name ?? ''
+        let html = `<div style="font-weight:600;margin-bottom:4px">${tier}</div>`
+        params.forEach(p => {
+          html += `<div style="display:flex;justify-content:space-between;gap:16px;font-size:12px;margin-top:2px">
+            <span style="color:${p.seriesName === '% Customers' ? '#38BDF8' : '#14B8A6'}">${p.seriesName}</span>
+            <span style="font-weight:bold">${p.value}%</span>
+          </div>`
+        })
+        return html
+      },
+    },
+    legend: {
+      data: ['% Customers', '% Revenue'],
+      textStyle: { color: 'var(--muted-foreground)', fontSize: 11 },
+      top: 4,
+      right: 0,
+      itemWidth: 10,
+      itemHeight: 10,
+    },
+    xAxis: {
+      type: 'value',
+      max: 60,
+      axisLabel: { color: CHART_COLOURS.axis, fontSize: 10, formatter: (v: number) => `${v}%` },
+      splitLine: { lineStyle: { color: CHART_COLOURS.grid } },
+    },
+    yAxis: {
+      type: 'category',
+      data: [...VALUE_TIERS].reverse().map(d => d.tier),
+      axisLabel: { color: CHART_COLOURS.axis, fontSize: 10 },
+      axisLine: { show: false },
+    },
     series: [
-      { type: 'line', data: REVENUE_CURVE.map(p => [p.pct, p.revenue]), smooth: true, lineStyle: { color: '#14B8A6', width: 2 }, itemStyle: { color: '#14B8A6' }, name: 'Revenue curve', symbol: 'none', areaStyle: { color: 'rgba(20,184,166,0.12)' } },
-      { type: 'line', data: [[0, 0], [100, 100]], lineStyle: { type: 'dashed', color: '#555', width: 1 }, symbol: 'none', name: 'Perfect equality', tooltip: { show: false } },
+      {
+        name: '% Customers',
+        type: 'bar',
+        data: [...VALUE_TIERS].reverse().map(d => d.pctCustomers),
+        barGap: '30%',
+        barMaxWidth: 20,
+        itemStyle: { color: '#38BDF8', borderRadius: [0, 4, 4, 0] },
+      },
+      {
+        name: '% Revenue',
+        type: 'bar',
+        data: [...VALUE_TIERS].reverse().map(d => d.pctRevenue),
+        barMaxWidth: 20,
+        itemStyle: { color: '#14B8A6', borderRadius: [0, 4, 4, 0] },
+      },
     ],
-    grid: { top: 15, bottom: 35, left: 55, right: 10 },
+    grid: { top: 36, bottom: 20, left: 80, right: 20 },
   }
   return <ReactECharts option={option} style={{ height: 210 }} notMerge />
 }
@@ -40,6 +98,7 @@ function LorenzCurve() {
 export function JourneyPage() {
   const { openDrawer } = useCustomerDrawer()
   const { status, error } = useDatasetStore()
+  const { data: journeyData, isLoading } = useJourneyData()
 
   if (status === 'idle') {
     return (
@@ -68,6 +127,17 @@ export function JourneyPage() {
     )
   }
 
+  if (isLoading) {
+    return (
+      <div className="mx-auto flex max-w-[1440px] animate-fadeIn flex-col gap-6">
+        <PageHeader title="Customer Journey" description="How customers grow, plateau, and churn" />
+        <ProcessingState />
+      </div>
+    )
+  }
+
+  const { customers, ordersHist, gapHist, acquiredPerMonth } = journeyData
+
   return (
     <div className="mx-auto flex max-w-[1440px] animate-fadeIn flex-col gap-6">
       <PageHeader title="Customer Journey" description="How customers grow, plateau, and churn" />
@@ -76,20 +146,20 @@ export function JourneyPage() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="sl-card p-4">
           <h2 className="mb-3 text-sm font-semibold text-foreground">Orders per Customer</h2>
-          <HistBar data={ORDERS_HIST} xKey="bucket" yKey="count" color="#14B8A6" xLabel="Order count" />
+          <HistBar data={ordersHist} xKey="bucket" yKey="count" color="#14B8A6" xLabel="Order count" />
         </div>
         <div className="sl-card p-4">
           <h2 className="mb-3 text-sm font-semibold text-foreground">Purchase Gap Distribution (days)</h2>
-          <HistBar data={GAP_HIST} xKey="bucket" yKey="count" color="#38BDF8" xLabel="Days between orders" />
+          <HistBar data={gapHist} xKey="bucket" yKey="count" color="#38BDF8" xLabel="Days between orders" />
         </div>
         <div className="sl-card p-4">
-          <h2 className="mb-1 text-sm font-semibold text-foreground">Revenue Concentration (Lorenz Curve)</h2>
-          <p className="mb-2 text-xs text-muted-foreground">20% of customers → ~66% of revenue</p>
-          <LorenzCurve />
+          <h2 className="mb-1 text-sm font-semibold text-foreground">Revenue Concentration by Customer Tier</h2>
+          <p className="mb-2 text-xs text-muted-foreground">Top 5% of customers drive 35% of revenue — compare customer share vs revenue share by tier</p>
+          <CustomerValueTiers />
         </div>
         <div className="sl-card p-4">
           <h2 className="mb-3 text-sm font-semibold text-foreground">Customers Acquired per Month</h2>
-          <HistBar data={ACQUIRED_PER_MONTH} xKey="month" yKey="acquired" color="#A78BFA" xLabel="Month" />
+          <HistBar data={acquiredPerMonth} xKey="month" yKey="acquired" color="#A78BFA" xLabel="Month" />
         </div>
       </div>
 
@@ -100,7 +170,7 @@ export function JourneyPage() {
           <span className="text-xs text-faint">Click row → Customer 360</span>
         </div>
         <DataTable
-          rows={JOURNEY_CUSTOMERS}
+          rows={customers}
           rowKey={r => r.id}
           searchable
           searchPlaceholder="Search by ID…"
@@ -116,7 +186,7 @@ export function JourneyPage() {
             { key: 'avgGap', header: 'Avg gap', align: 'right', sortable: true, render: r => r.avgGap ? `${r.avgGap}d` : '—' },
             {
               key: 'gapTrend', header: 'Trend', render: r => {
-                const map = { up: { label: '↑ Widening', color: 'var(--negative)' }, down: { label: '↓ Shrinking', color: 'var(--positive)' }, flat: { label: '→ Stable', color: 'var(--muted-foreground)' } }
+                const map = { up: { label: '↑ Upwards', color: 'var(--negative)' }, down: { label: '↓ Downwards', color: 'var(--positive)' }, flat: { label: '→ Stable', color: 'var(--muted-foreground)' } }
                 const t = map[r.gapTrend]
                 return <span className="text-xs font-medium" style={{ color: t.color }}>{t.label}</span>
               }

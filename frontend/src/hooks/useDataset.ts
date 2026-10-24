@@ -6,6 +6,8 @@ import { DEMO_DATASET } from '@/lib/mock-data'
 
 export function useDataset() {
   const datasetId = useFiltersStore((s) => s.datasetId)
+  const datasetStatus = useDatasetStore((s) => s.status)
+
   return useQuery({
     queryKey: ['dataset', datasetId],
     queryFn: async () => {
@@ -19,11 +21,23 @@ export function useDataset() {
           return res
         }
       } catch {
-        // Fallback to demo dataset on connection error or 404
+        // Only fall back to demo data when no upload has been attempted yet.
+        // If an upload is in progress or has completed, propagate the error
+        // rather than silently masking it with stale mock data.
+        const status = useDatasetStore.getState().status
+        if (status !== 'idle') throw new Error('Backend not ready — please wait for processing to complete.')
       }
       return DEMO_DATASET
     },
-    staleTime: 30000,
+    // Never treat data as fresh — always re-validate when the queryKey changes
+    // or when the component remounts after a new upload.
+    staleTime: 0,
+    refetchOnMount: 'always',
+    // Retry briefly on failure, but don't hammer the backend during processing.
+    retry: 2,
+    retryDelay: 1500,
+    // Only run the query when we are not actively uploading/processing.
+    enabled: datasetStatus !== 'uploading' && datasetStatus !== 'processing',
   })
 }
 
@@ -43,6 +57,6 @@ export function useRecentDatasets() {
         { id: 'uci-demo', name: 'UCI Online Retail - Demo (Standard)', uploaded: 'Today, 09:41 AM', rows: 399659, status: 'Processed' as const, primary: true },
       ]
     },
-    staleTime: 30000,
+    staleTime: 0,
   })
 }

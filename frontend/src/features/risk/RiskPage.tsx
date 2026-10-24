@@ -4,13 +4,13 @@ import { PageHeader } from '@/components/ui/page-header'
 import { InsightBanner } from '@/components/ui/insight-banner'
 import { SegmentChip } from '@/components/ui/segment-chip'
 import { DataTable } from '@/components/tables/DataTable'
-import { RISK_SCORES } from '@/lib/mock-data'
 import { SEGMENT_COLOURS, RISK_COLOURS } from '@/lib/colours'
 import { formatGBP } from '@/lib/formatters'
 import { useCustomerDrawer } from '@/components/ui/customer-drawer'
 import type { RiskBand, RiskScore, SegmentName } from '@/lib/types'
 import { useDatasetStore } from '@/stores/dataset'
 import { UploadPendingState, ProcessingState, ErrorState } from '@/components/ui/pending-state'
+import { useRiskData } from '@/hooks/useBackendData'
 
 const PRESETS: { name: string; w: [number, number, number, number] }[] = [
   { name: 'Default', w: [40, 25, 20, 15] },
@@ -91,6 +91,28 @@ export function RiskPage() {
   const [weights, setWeights] = useState([40, 25, 20, 15])
   const { openDrawer } = useCustomerDrawer()
   const { status, error } = useDatasetStore()
+  const { data: riskScores, isLoading } = useRiskData()
+
+  const reScored = useMemo<RiskScore[]>(() => {
+    const [wR, wRet, wG, wA] = weights.map(w => w / 100)
+    return riskScores.map(r => {
+      const score = Math.min(100, Math.round((r.rfmDecay * wR + r.returnRate * wRet + r.gapTrend * wG + r.anomaly * wA) * 100))
+      return { ...r, score, band: bandFor(score) }
+    }).sort((a, b) => b.score - a.score)
+  }, [weights, riskScores])
+
+  const kpis = useMemo(() => {
+    const critical = reScored.filter(r => r.band === 'Critical')
+    const high = reScored.filter(r => r.band === 'High')
+    const medium = reScored.filter(r => r.band === 'Medium')
+    const atRiskRev = [...critical, ...high].reduce((s, r) => s + r.revenue, 0)
+    return [
+      { label: 'Critical', value: critical.length, color: RISK_COLOURS.Critical },
+      { label: 'High', value: high.length, color: RISK_COLOURS.High },
+      { label: 'Medium', value: medium.length, color: RISK_COLOURS.Medium },
+      { label: 'Value at risk', value: formatGBP(atRiskRev), color: 'var(--negative)', isGBP: true },
+    ]
+  }, [reScored])
 
   if (status === 'idle') {
     return (
@@ -119,26 +141,14 @@ export function RiskPage() {
     )
   }
 
-  const reScored = useMemo<RiskScore[]>(() => {
-    const [wR, wRet, wG, wA] = weights.map(w => w / 100)
-    return RISK_SCORES.map(r => {
-      const score = Math.min(100, Math.round((r.rfmDecay * wR + r.returnRate * wRet + r.gapTrend * wG + r.anomaly * wA) * 100))
-      return { ...r, score, band: bandFor(score) }
-    }).sort((a, b) => b.score - a.score)
-  }, [weights])
-
-  const kpis = useMemo(() => {
-    const critical = reScored.filter(r => r.band === 'Critical')
-    const high = reScored.filter(r => r.band === 'High')
-    const medium = reScored.filter(r => r.band === 'Medium')
-    const atRiskRev = [...critical, ...high].reduce((s, r) => s + r.revenue, 0)
-    return [
-      { label: 'Critical', value: critical.length, color: RISK_COLOURS.Critical },
-      { label: 'High', value: high.length, color: RISK_COLOURS.High },
-      { label: 'Medium', value: medium.length, color: RISK_COLOURS.Medium },
-      { label: 'Value at risk', value: formatGBP(atRiskRev), color: 'var(--negative)', isGBP: true },
-    ]
-  }, [reScored])
+  if (isLoading) {
+    return (
+      <div className="mx-auto flex max-w-[1440px] animate-fadeIn flex-col gap-6">
+        <PageHeader title="Churn Risk" description="Who is about to leave, and how bad is it?" />
+        <ProcessingState />
+      </div>
+    )
+  }
 
   const updateWeight = (idx: number, val: number) => {
     const newW = [...weights]
@@ -147,8 +157,7 @@ export function RiskPage() {
     const total = newW.reduce((s, w) => s + w, 0)
     if (total !== 100) {
       const diff = total - 100
-      const others = newW.map((w, i) => i !== idx ? w : 0)
-      const othersSum = others.reduce((s, w) => s + w, 0)
+      const othersSum = newW.reduce((s, w, i) => s + (i !== idx ? w : 0), 0)
       if (othersSum > 0) newW.forEach((_, i) => { if (i !== idx) newW[i] = Math.max(0, Math.round(newW[i] - diff * (newW[i] / othersSum))) })
     }
     setWeights(newW)

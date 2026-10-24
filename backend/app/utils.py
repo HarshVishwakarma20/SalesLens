@@ -6,13 +6,33 @@ from __future__ import annotations
 import math
 from typing import Any
 
+import numpy as np
+import pandas as pd
+
 
 # ---------------------------------------------------------------------------
 # JSON-safe serialisation helpers
 # ---------------------------------------------------------------------------
 
 def _safe(v: Any) -> Any:
-    """Return None for NaN / ±Inf so FastAPI can serialise the value."""
+    """Return JSON-safe values; None for NaN / ±Inf."""
+    if v is None:
+        return None
+    if isinstance(v, (np.bool_,)):
+        return bool(v)
+    if isinstance(v, (np.integer,)):
+        return int(v)
+    if isinstance(v, (np.floating, float)):
+        fv = float(v)
+        if math.isnan(fv) or math.isinf(fv):
+            return None
+        return fv
+    if isinstance(v, pd.Timestamp):
+        return str(v)[:19].replace("T", " ")
+    if isinstance(v, pd.Period):
+        return str(v)
+    if isinstance(v, np.ndarray):
+        return sanitize(v.tolist())
     if isinstance(v, float) and (math.isnan(v) or math.isinf(v)):
         return None
     return v

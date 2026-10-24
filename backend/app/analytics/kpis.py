@@ -55,16 +55,23 @@ def compute_headline_kpis(
     denom = gross_sales + return_value
     overall_return_rate = float(return_value / denom) if denom > 0 else 0.0
 
+    churn_pct = round(churn * 100, 2) if churn is not None else None
+    rev_pct = round(rev_ret, 2) if rev_ret is not None else None
+    return_pct = round(overall_return_rate * 100, 2)
     return {
         "totalCustomers": total_customers,
         "activeCustomers": active,
         "repeatRate": round(repeat_rate, 4),
         "churnRate": round(churn, 4) if churn is not None else None,
-        "revenueRetentionPct": round(rev_ret, 2) if rev_ret is not None else None,
+        "churnRateIndicative": churn_pct,
+        "revenueRetentionPct": rev_pct,
+        "revRetention": rev_pct,
         "grossSales": round(gross_sales, 2),
         "returnsValue": round(return_value, 2),
+        "totalReturns": round(return_value, 2),
         "netRevenue": round(net_rev, 2),
         "overallReturnRate": round(overall_return_rate, 4),
+        "returnRate": return_pct,
     }
 
 
@@ -88,6 +95,9 @@ def compute_monthly_trends(
     combined["netRevenue"] = (combined["sales"] - combined["returns"]).round(2)
     combined["sales"] = combined["sales"].round(2)
     combined["returns"] = combined["returns"].round(2)
+    denom = combined["sales"].replace(0, np.nan)
+    combined["returnRate"] = (combined["returns"] / denom * 100).fillna(0).round(2)
+    combined["month"] = combined["month"].astype(str)
     return combined.to_dict(orient="records")
 
 

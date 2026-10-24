@@ -73,9 +73,8 @@ def persist_analytics_results(
     db: Session = factory()
     try:
         with db.begin():
-            # Mark previous active datasets with this name as inactive
+            # Only one dataset can be active at a time
             db.query(DatasetModel).filter(
-                DatasetModel.dataset_name == filename,
                 DatasetModel.is_active == True,  # noqa: E712
             ).update({"is_active": False})
 
@@ -101,11 +100,17 @@ def persist_analytics_results(
                 dataset_id=ds_id,
                 active_customers=int(_sanitize_val(kpis.get("activeCustomers")) or 0),
                 repeat_rate=float(_sanitize_val(kpis.get("repeatRate")) or 0.0),
-                churn_rate_indicative=_sanitize_val(kpis.get("churnRateIndicative")),
-                rev_retention=_sanitize_val(kpis.get("revRetention")),
+                churn_rate_indicative=_sanitize_val(
+                    kpis.get("churnRateIndicative", kpis.get("churnRate"))
+                ),
+                rev_retention=_sanitize_val(
+                    kpis.get("revRetention", kpis.get("revenueRetentionPct"))
+                ),
                 net_revenue=float(_sanitize_val(kpis.get("netRevenue")) or 0.0),
                 gross_sales=float(_sanitize_val(kpis.get("grossSales")) or 0.0),
-                total_returns=float(_sanitize_val(kpis.get("totalReturns")) or 0.0),
+                total_returns=float(
+                    _sanitize_val(kpis.get("totalReturns", kpis.get("returnsValue"))) or 0.0
+                ),
                 total_customers=int(_sanitize_val(kpis.get("totalCustomers")) or 0),
                 return_rate=float(_sanitize_val(kpis.get("returnRate")) or 0.0),
             )

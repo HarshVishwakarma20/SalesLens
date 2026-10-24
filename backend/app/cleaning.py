@@ -346,6 +346,10 @@ def prepare_cleaned_data(df: pd.DataFrame) -> tuple[pd.DataFrame, dict[str, Any]
     inv_date = df["InvoiceDate"].iloc[:, 0] if isinstance(df["InvoiceDate"], pd.DataFrame) else df["InvoiceDate"]
     df["InvoiceDate"] = pd.to_datetime(inv_date, errors="coerce")
     df["NetRevenue"] = pd.to_numeric(df["NetRevenue"], errors="coerce")
+    missing_cid = int(df["CustomerID"].isna().sum())
+    missing_essential = int(df[["InvoiceDate", "NetRevenue"]].isna().any(axis=1).sum())
+    summary["missingCustomerIdRemoved"] = missing_cid
+    summary["missingEssentialRemoved"] = missing_essential
     df = df.dropna(subset=["CustomerID", "InvoiceDate", "NetRevenue"]).copy()
     df["CustomerID"] = df["CustomerID"].astype("Int64")
 
@@ -381,6 +385,15 @@ def prepare_cleaned_data(df: pd.DataFrame) -> tuple[pd.DataFrame, dict[str, Any]
     summary["returnRows"] = int(
         (df["TransactionType"] == "RETURN/CANCELLATION").sum()
     )
+    summary["duplicatesRemoved"] = int(summary.get("duplicatesRemoved", 0) or 0)
+    summary["missingCustomerIdRemoved"] = int(summary.get("missingCustomerIdRemoved", 0) or 0)
+    summary["missingEssentialRemoved"] = int(summary.get("missingEssentialRemoved", 0) or 0)
+    summary["zeroQuantityRemoved"] = int(summary.get("zeroQuantityRemoved", 0) or 0)
+    summary["negativePriceRemoved"] = int(summary.get("negativePriceRemoved", 0) or 0)
+    summary["nonProductRemoved"] = int(summary.get("nonProductRemoved", 0) or 0)
+    summary["grossSales"] = round(float(df["SalesValue"].sum()), 2)
+    summary["returnValue"] = round(float(df["ReturnValue"].sum()), 2)
+    summary["netRevenue"] = round(float(df["NetRevenue"].sum()), 2)
 
     return df, summary
 

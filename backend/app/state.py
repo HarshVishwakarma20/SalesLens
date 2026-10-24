@@ -39,9 +39,13 @@ class _AppState:
     dataset_id: Optional[int] = None
     is_raw_input: bool = False
     cleaning_summary: Optional[dict] = None
+    # Incremented on every upload so an older background pipeline cannot
+    # overwrite a newer dataset's results.
+    generation: int = 0
 
     def reset(self) -> None:
         """Clear all state before processing a new upload."""
+        generation = self.generation
         self.status = "idle"
         self.error = None
         self.cleaned_df = None
@@ -61,6 +65,7 @@ class _AppState:
         self.dataset_id = None
         self.is_raw_input = False
         self.cleaning_summary = None
+        self.generation = generation
 
     def is_ready(self) -> bool:
         return self.status == "ready"

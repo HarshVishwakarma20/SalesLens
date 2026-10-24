@@ -48,14 +48,18 @@ def _attach_affected(
 
 
 def _add_anomaly_type(df: pd.DataFrame) -> pd.DataFrame:
-    """Add AnomalyType column: 'spike', 'drop', or None."""
+    """Add AnomalyType / Direction columns: 'spike', 'drop', or None."""
     df = df.copy()
+    zcol = "z_score" if "z_score" in df.columns else "ZScore"
     df["AnomalyType"] = df.apply(
-        lambda row: ("spike" if row["z_score"] > 0 else "drop")
+        lambda row: ("spike" if row[zcol] > 0 else "drop")
         if row["Flagged"]
         else None,
         axis=1,
     )
+    df["Direction"] = df["AnomalyType"]
+    if "ZScore" not in df.columns and zcol in df.columns:
+        df["ZScore"] = df[zcol]
     return df
 
 
@@ -96,8 +100,8 @@ def anomaly_detection(
     if sales_df.empty:
         return pd.DataFrame(
             columns=[
-                "Date", "Sales", "z_score", "Flagged",
-                "AnomalyType", "AffectedCustomerIDs",
+                "Date", "Sales", "Mean", "Std", "z_score", "ZScore", "Flagged",
+                "AnomalyType", "Direction", "AffectedCustomerIDs",
             ]
         )
 
@@ -131,7 +135,10 @@ def anomaly_detection(
             {
                 "Date": day,
                 "Sales": float(val),
+                "Mean": round(mean, 4),
+                "Std": round(std, 4),
                 "z_score": round(z, 4),
+                "ZScore": round(z, 4),
                 "Flagged": bool(abs(z) > threshold),
             }
         )
@@ -175,8 +182,8 @@ def stl_anomaly_detection(
     if sales_df.empty:
         return pd.DataFrame(
             columns=[
-                "Date", "Sales", "z_score", "Flagged",
-                "AnomalyType", "AffectedCustomerIDs",
+                "Date", "Sales", "Mean", "Std", "z_score", "ZScore", "Flagged",
+                "AnomalyType", "Direction", "AffectedCustomerIDs",
             ]
         )
 
@@ -198,7 +205,10 @@ def stl_anomaly_detection(
         {
             "Date": daily.index,
             "Sales": daily.values.astype(float),
+            "Mean": (daily.values.astype(float) - resid.values).round(4),
+            "Std": round(float(std) if std == std else 0.0, 4),
             "z_score": z.values.round(4),
+            "ZScore": z.values.round(4),
             "Flagged": (z.abs() > threshold).values,
         }
     )

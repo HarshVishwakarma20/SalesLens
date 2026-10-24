@@ -1,6 +1,6 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { toast } from 'sonner'
-import { ArrowRight, Maximize2, SlidersHorizontal } from 'lucide-react'
+import { ArrowRight, Maximize2, X } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardHeader } from '@/components/ui/card'
 import { InfoTip } from '@/components/ui/info-tip'
@@ -24,36 +24,65 @@ function LegendKey({ colour, label, line }: { colour: string; label: string; lin
 }
 
 export function MonthlySalesPanel({ data }: { data: Dataset['monthly'] }) {
+  const [isFullscreen, setIsFullscreen] = useState(false)
+
   return (
-    <Card className="col-span-12 flex flex-col justify-between p-6 lg:col-span-8">
-      <CardHeader
-        className="mb-4"
-        title="Monthly sales and returns"
-        description="Dec 2010 to Dec 2011 • Sales vs Returns in GBP (k)"
-        actions={
-          <div className="flex flex-wrap items-center gap-4 text-xs">
-            <LegendKey colour={CHART_COLOURS.sales} label="Sales" />
-            <LegendKey colour={CHART_COLOURS.returns} label="Returns" />
-            <LegendKey colour={CHART_COLOURS.returnRate} label="Return %" line />
-            <button type="button" onClick={() => toast('Chart fullscreen view')} className="text-faint hover:text-foreground" aria-label="Expand chart">
-              <Maximize2 className="size-3.5" />
+    <>
+      {/* Fullscreen overlay */}
+      {isFullscreen && (
+        <div
+          className="fixed inset-0 z-50 flex flex-col bg-background/95 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Monthly sales and returns – fullscreen"
+        >
+          <div className="flex items-center justify-between border-b border-border px-6 py-4">
+            <div className="flex flex-wrap items-center gap-4 text-xs">
+              <span className="font-semibold text-foreground">Monthly sales and returns</span>
+              <LegendKey colour={CHART_COLOURS.sales} label="Sales" />
+              <LegendKey colour={CHART_COLOURS.returns} label="Returns" />
+              <LegendKey colour={CHART_COLOURS.returnRate} label="Return %" line />
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsFullscreen(false)}
+              className="flex items-center gap-1.5 rounded-lg border border-border bg-raised px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+              aria-label="Close fullscreen"
+            >
+              <X className="size-3.5" />
+              Close
             </button>
           </div>
-        }
-      />
-      <MonthlySalesChart data={data} />
-      <div className="mt-3 flex items-center justify-between border-t border-border/40 pt-3 text-xs text-faint">
-        <span className="flex items-center gap-1.5">
-          <SlidersHorizontal className="size-3.5" aria-hidden />
-          Timeline Brush (Zoom 13 Months)
-        </span>
-        <div className="relative flex h-3 w-48 items-center rounded border border-border bg-raised px-1" aria-hidden>
-          <div className="h-1.5 w-full rounded bg-accent/40" />
-          <div className="absolute left-1 h-2.5 w-2 cursor-ew-resize rounded-sm bg-accent" />
-          <div className="absolute right-1 h-2.5 w-2 cursor-ew-resize rounded-sm bg-accent" />
+          <div className="flex-1 p-6">
+            <MonthlySalesChart data={data} />
+          </div>
         </div>
-      </div>
-    </Card>
+      )}
+
+      <Card className="col-span-12 flex flex-col p-6 lg:col-span-8">
+        <CardHeader
+          className="mb-4"
+          title="Monthly sales and returns"
+          description="Dec 2010 to Dec 2011 • Sales vs Returns in GBP (k)"
+          actions={
+            <div className="flex flex-wrap items-center gap-4 text-xs">
+              <LegendKey colour={CHART_COLOURS.sales} label="Sales" />
+              <LegendKey colour={CHART_COLOURS.returns} label="Returns" />
+              <LegendKey colour={CHART_COLOURS.returnRate} label="Return %" line />
+              <button
+                type="button"
+                onClick={() => setIsFullscreen(true)}
+                className="text-faint hover:text-foreground transition-colors"
+                aria-label="Expand chart to fullscreen"
+              >
+                <Maximize2 className="size-3.5" />
+              </button>
+            </div>
+          }
+        />
+        <MonthlySalesChart data={data} />
+      </Card>
+    </>
   )
 }
 

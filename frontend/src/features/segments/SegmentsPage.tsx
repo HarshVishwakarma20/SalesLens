@@ -1,17 +1,16 @@
-import { useState } from 'react'
 import ReactECharts from 'echarts-for-react'
 import { PageHeader } from '@/components/ui/page-header'
 import { InsightBanner } from '@/components/ui/insight-banner'
 import { SegmentChip } from '@/components/ui/segment-chip'
 import { DataTable } from '@/components/tables/DataTable'
 import { SEGMENT_COLOURS, CHART_COLOURS } from '@/lib/colours'
-import { RFM_CUSTOMERS, RFM_SCATTER, DEMO_DATASET } from '@/lib/mock-data'
 import { formatPercent, formatInt, formatGBP } from '@/lib/formatters'
 import type { SegmentName } from '@/lib/types'
 import { useFilters } from '@/hooks/useFilters'
 import { useDatasetStore } from '@/stores/dataset'
 import { UploadPendingState, ProcessingState, ErrorState } from '@/components/ui/pending-state'
 import { Info } from 'lucide-react'
+import { useSegmentsData } from '@/hooks/useBackendData'
 
 function ExplainTip({ text }: { text: string }) {
   return (
@@ -36,32 +35,14 @@ const SEGMENT_RULES: Record<SegmentName, string> = {
   Promising: 'Everyone else',
 }
 
-// Build 5×5 heatmap counts
-function buildHeatmap() {
-  const grid: number[][] = Array.from({ length: 5 }, () => Array(5).fill(0))
-  for (const c of RFM_CUSTOMERS) {
-    grid[5 - c.f][c.r - 1]++
-  }
-  return grid
-}
-
-const HEATMAP = buildHeatmap()
-
-// Build R/F/M dist
-function buildDist(key: 'r' | 'f' | 'm') {
-  const counts = [0, 0, 0, 0, 0]
-  for (const c of RFM_CUSTOMERS) counts[c[key] - 1]++
-  return counts.map((v, i) => ({ score: i + 1, count: v }))
-}
-
-function ScatterChart({ visibleSegs }: { visibleSegs: Set<SegmentName> }) {
+function ScatterChart({ visibleSegs, rfmScatter }: { visibleSegs: Set<SegmentName>; rfmScatter: { id: string; recency: number; frequency: number; monetary: number; r: number; f: number; segment: SegmentName }[] }) {
   const series = Object.entries(SEGMENT_COLOURS)
     .filter(([seg]) => visibleSegs.has(seg as SegmentName))
     .map(([seg, color]) => ({
       name: seg,
       type: 'scatter',
       symbolSize: (d: number[]) => Math.sqrt(d[2]) / 8,
-      data: RFM_SCATTER.filter(p => p.segment === seg).map(p => [p.recency, p.frequency, p.monetary]),
+      data: rfmScatter.filter(p => p.segment === seg).map(p => [p.recency, p.frequency, p.monetary]),
       itemStyle: { color },
     }))
 
@@ -92,63 +73,11 @@ function ScatterChart({ visibleSegs }: { visibleSegs: Set<SegmentName> }) {
   return <ReactECharts option={option} style={{ height: 340 }} notMerge />
 }
 
-function HeatmapGrid() {
-  const maxVal = Math.max(...HEATMAP.flat())
-  return (
-    <div>
-      <div className="flex items-center gap-2 mb-2">
-        <span className="text-xs text-faint w-4">F</span>
-        <div className="grid grid-cols-5 gap-1 flex-1">
-          {[5, 4, 3, 2, 1].map(f => (
-            HEATMAP[5 - f].map((count, ri) => {
-              const intensity = maxVal > 0 ? count / maxVal : 0
-              return (
-                <div
-                  key={`${f}-${ri}`}
-                  title={`F=${f} R=${ri + 1}: ${count} customers`}
-                  className="flex h-9 w-full items-center justify-center rounded-md text-[11px] font-semibold transition-transform hover:scale-110 cursor-default"
-                  style={{
-                    background: `rgba(20,184,166,${0.08 + intensity * 0.55})`,
-                    color: intensity > 0.5 ? '#fff' : 'var(--muted-foreground)',
-                  }}
-                >
-                  {count || ''}
-                </div>
-              )
-            })
-          ))}
-        </div>
-      </div>
-      <div className="flex gap-1 ml-6">
-        {[1, 2, 3, 4, 5].map(r => (
-          <div key={r} className="flex-1 text-center text-[10px] text-faint">R{r}</div>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-function DistBar({ data, color }: { data: { score: number; count: number }[]; color: string }) {
-  const max = Math.max(...data.map(d => d.count), 1)
-  return (
-    <div className="flex gap-1 items-end h-16">
-      {data.map(d => (
-        <div key={d.score} className="flex flex-1 flex-col items-center gap-0.5">
-          <div className="w-full rounded-sm" style={{ height: `${(d.count / max) * 52}px`, background: color }} />
-          <span className="text-[9px] text-faint">{d.score}</span>
-        </div>
-      ))}
-    </div>
-  )
-}
-
 export function SegmentsPage() {
   const { segments: visibleSegNames } = useFilters()
   const visibleSegs = new Set(visibleSegNames)
-  const [wR, setWR] = useState(0.4)
-  const [wF, setWF] = useState(0.3)
-  const segments = DEMO_DATASET.segments
   const { status, error } = useDatasetStore()
+  const { data: segData, isLoading } = useSegmentsData()
 
   if (status === 'idle') {
     return (
@@ -177,18 +106,16 @@ export function SegmentsPage() {
     )
   }
 
-  const normalize = (changed: 'r' | 'f' | 'm', val: number) => {
-    const rest = 1 - val
-    if (changed === 'r') { const s = wF + wM; setWR(val); if (s > 0) { setWF((wF / s) * rest); setWM((wM / s) * rest) } }
-    else if (changed === 'f') { const s = wR + wM; setWF(val); if (s > 0) { setWR((wR / s) * rest); setWM((wM / s) * rest) } }
-    else { const s = wR + wF; setWM(val); if (s > 0) { setWR((wR / s) * rest); setWF((wF / s) * rest) } }
+  if (isLoading) {
+    return (
+      <div className="mx-auto flex max-w-[1440px] animate-fadeIn flex-col gap-6">
+        <PageHeader title="Segments" description="Who are your customers, grouped by value." />
+        <ProcessingState />
+      </div>
+    )
   }
-  const wM = 1 - wR - wF
-  const [, setWM] = useState(0.3)
 
-  const avgRfm = ((wR * RFM_CUSTOMERS.reduce((s, c) => s + c.r, 0) +
-    wF * RFM_CUSTOMERS.reduce((s, c) => s + c.f, 0) +
-    wM * RFM_CUSTOMERS.reduce((s, c) => s + c.m, 0)) / RFM_CUSTOMERS.length).toFixed(2)
+  const { rfmCustomers, rfmScatter, segments } = segData
 
   return (
     <div className="mx-auto flex max-w-[1440px] animate-fadeIn flex-col gap-6">
@@ -198,6 +125,68 @@ export function SegmentsPage() {
       <div className="rounded-xl border border-accent/20 bg-accent/5 px-4 py-3 text-xs text-muted-foreground leading-relaxed">
         <span className="font-semibold text-accent">How to read this page: </span>
         Customers are grouped into RFM segments (Recency, Frequency, Monetary). Champions are your best customers; Lost are inactive. Use the scatter chart to explore how segments cluster. Adjust the weighted RFM sliders to reprioritize scoring. Hover any chart element for details.
+      </div>
+      {/* Segment Glossary */}
+      <div className="sl-card p-5" tabIndex={0}>
+        <div className="mb-4">
+          <h2 className="text-sm font-semibold text-foreground">Segment Glossary</h2>
+          <p className="mt-1 text-xs text-muted-foreground">What each segment label means — so you always know who you&apos;re looking at.</p>
+        </div>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {[
+            {
+              name: 'Champions' as SegmentName,
+              icon: '🏆',
+              meaning: 'Bought very recently, buy often, and spend the most. These are your best customers — reward and retain them.',
+              action: 'Offer early access, loyalty perks, and thank-you discounts.',
+            },
+            {
+              name: 'Loyal' as SegmentName,
+              icon: '💙',
+              meaning: 'Consistently frequent buyers who spend well. They trust your brand but may not always spend at peak levels.',
+              action: 'Upsell premium products and invite to loyalty programmes.',
+            },
+            {
+              name: 'Promising' as SegmentName,
+              icon: '🌱',
+              meaning: 'Recent buyers with decent frequency who haven\'t reached their full potential yet.',
+              action: 'Nurture with personalised recommendations and gentle follow-ups.',
+            },
+            {
+              name: 'New' as SegmentName,
+              icon: '✨',
+              meaning: 'Purchased very recently but only once or twice. Still forming habits with your brand.',
+              action: 'Send a warm welcome series and highlight bestsellers to build loyalty.',
+            },
+            {
+              name: 'At-Risk' as SegmentName,
+              icon: '⚠️',
+              meaning: 'Used to buy regularly but haven\'t returned in a while. They are drifting away and need re-engagement now.',
+              action: 'Send a targeted win-back campaign with a time-limited offer.',
+            },
+            {
+              name: 'Lost' as SegmentName,
+              icon: '💔',
+              meaning: 'Haven\'t purchased in a long time and rarely ordered even before. Very difficult to recover.',
+              action: 'Low-cost reactivation attempt only — focus budget on higher-value segments.',
+            },
+          ].map((seg) => (
+            <div
+              key={seg.name}
+              className="rounded-xl border border-border bg-raised/40 p-4 flex flex-col gap-2"
+              style={{ borderTop: `3px solid ${SEGMENT_COLOURS[seg.name]}` }}
+            >
+              <div className="flex items-center gap-2">
+                <span className="text-base" role="img" aria-label={seg.name}>{seg.icon}</span>
+                <SegmentChip segment={seg.name} />
+              </div>
+              <p className="text-xs text-foreground leading-relaxed">{seg.meaning}</p>
+              <p className="text-[11px] text-muted-foreground leading-relaxed border-t border-border/60 pt-2">
+                <span className="font-semibold text-accent">Action: </span>{seg.action}
+              </p>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Segment cards */}
@@ -216,76 +205,25 @@ export function SegmentsPage() {
             <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-muted-foreground">
               <span>% of customers</span><span className="num-tabular text-right font-semibold text-foreground">{formatPercent(seg.share)}</span>
               <span>% of revenue</span><span className="num-tabular text-right font-semibold text-foreground">{formatPercent(seg.share * 1.1)}</span>
-              <span>Avg RFM score</span><span className="num-tabular text-right font-semibold text-foreground">{(Math.random() * 2 + 1.5).toFixed(2)}</span>
             </div>
             <div className="mt-1 rounded-lg bg-raised/60 px-2 py-1 text-[10px] font-mono text-faint">{SEGMENT_RULES[seg.name]}</div>
           </div>
         ))}
       </div>
 
-      {/* RFM scatter + heatmap */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
-        <div className="sl-card p-4 lg:col-span-8" tabIndex={0}>
+      {/* RFM scatter - full width */}
+      <div className="grid grid-cols-1 gap-6">
+        <div className="sl-card p-4" tabIndex={0}>
           <div className="flex items-center gap-2 mb-1">
             <h2 className="text-sm font-semibold text-foreground">RFM Map</h2>
             <ExplainTip text="Each dot is a customer. X-axis = days since last purchase (lower = more recent). Y-axis = number of orders. Bubble size = monetary value. Drag slider to zoom." />
             <span className="ml-auto text-[10px] text-faint">Drag slider to zoom</span>
           </div>
           <p className="mb-3 text-xs text-muted-foreground">Recency vs Frequency, bubble = Monetary value</p>
-          <ScatterChart visibleSegs={visibleSegs} />
-        </div>
-        <div className="sl-card p-4 lg:col-span-4" tabIndex={0}>
-          <div className="flex items-center gap-2 mb-1">
-            <h2 className="text-sm font-semibold text-foreground">R × F Heatmap</h2>
-            <ExplainTip text="Each cell shows how many customers fall at a given R-score × F-score intersection. Darker teal = more customers at that combination." />
-          </div>
-          <p className="mb-3 text-xs text-muted-foreground">Customer count at each R/F combination</p>
-          <HeatmapGrid />
+          <ScatterChart visibleSegs={visibleSegs} rfmScatter={rfmScatter} />
         </div>
       </div>
 
-      {/* Distribution bars */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        {(['r', 'f', 'm'] as const).map((dim, i) => (
-          <div key={dim} className="sl-card p-4" tabIndex={0}>
-            <div className="flex items-center gap-2 mb-3">
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-faint">{['Recency', 'Frequency', 'Monetary'][i]} Score Distribution</h3>
-              <ExplainTip text={[
-                'How recently each customer purchased. Score 1 = oldest, 5 = most recent.',
-                'How many times each customer purchased. Score 1 = fewest, 5 = most frequent.',
-                'How much each customer spent. Score 1 = lowest, 5 = highest spender.',
-              ][i]} />
-            </div>
-            <DistBar data={buildDist(dim)} color={['#14B8A6', '#38BDF8', '#0EA5E9'][i]} />
-          </div>
-        ))}
-      </div>
-
-      {/* Weighted RFM sliders */}
-      <div className="sl-card p-4" tabIndex={0}>
-        <div className="flex items-center gap-2 mb-1">
-          <h2 className="text-sm font-semibold text-foreground">Weighted RFM Score</h2>
-          <ExplainTip text="Adjust the weight of each RFM dimension. Weights always sum to 1.0. Moving one slider redistributes weight across the others proportionally. Watch the live average score update." />
-        </div>
-        <p className="mb-3 text-xs text-muted-foreground">Adjust weights — they always sum to 1. Live avg: <span className="num-tabular font-semibold text-accent">{avgRfm}</span></p>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          {[
-            { label: 'Recency (R)', val: wR, set: (v: number) => normalize('r', v) },
-            { label: 'Frequency (F)', val: wF, set: (v: number) => normalize('f', v) },
-            { label: 'Monetary (M)', val: wM, set: (v: number) => normalize('m', v) },
-          ].map(s => (
-            <div key={s.label}>
-              <div className="flex justify-between text-xs mb-1">
-                <span className="text-muted-foreground">{s.label}</span>
-                <span className="num-tabular text-foreground">{(s.val * 10).toFixed(0)}</span>
-              </div>
-              <input type="range" min={1} max={8} step={1} value={Math.round(s.val * 10)}
-                onChange={e => s.set(Number(e.target.value) / 10)}
-                className="w-full accent-[var(--accent)]" />
-            </div>
-          ))}
-        </div>
-      </div>
 
       {/* Customer table */}
       <div className="sl-card p-4" tabIndex={0}>
@@ -294,7 +232,7 @@ export function SegmentsPage() {
           <ExplainTip text="Full RFM breakdown per customer. R/F/M are scores 1–5. RFM Score is the composite. Search by ID or sort any column." />
         </div>
         <DataTable
-          rows={RFM_CUSTOMERS}
+          rows={rfmCustomers}
           rowKey={r => r.id}
           searchable
           searchPlaceholder="Search by ID…"
