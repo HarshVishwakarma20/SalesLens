@@ -68,12 +68,17 @@ export interface BackendKpi {
   activeCustomers: number
   repeatRate: number
   churnRateIndicative: number | null
+  churnRate: number | null
+  lostPct: number | null
   revRetention: number | null
   netRevenue: number
   grossSales: number
   totalReturns: number
+  returnsValue: number
   totalCustomers: number
   returnRate: number
+  overallReturnRate: number
+  currencySymbol: string
 }
 
 export interface BackendMonthlyPoint {
@@ -195,11 +200,14 @@ export interface BackendProduct {
   StockCode: string
   Description: string
   GrossSales: number
+  ReturnValue: number
   ReturnedValue: number
   NetRevenue: number
   Buyers: number
+  BuyerCount: number
   ReturnRate: number
   RepeatAttachRate: number | null
+  TotalQtySold: number
   Category: string
 }
 
@@ -210,6 +218,25 @@ export interface BackendProductsPage {
   pageSize: number
   totalPages: number
   categorySummary: { category: string; count: number }[]
+}
+
+export interface BackendReportData {
+  revenueAtRisk: number
+  highCriticalCount: number
+  watchlist: Array<{
+    CustomerID: number
+    Segment: string
+    RiskBand: string
+    RiskScore: number
+    OrderCount: number
+    TotalRevenue: number
+  }>
+  segmentRevenue: Array<{
+    Segment: string
+    Monetary: number
+    RevenueShare: number
+  }>
+  currencySymbol: string
 }
 
 export interface BackendAnomalyDay {
@@ -341,5 +368,8 @@ export const api = {
   exportCsvUrl: (table: string) => `${BASE}/datasets/export/${table}.csv`,
 
   cleanedFileUrl: () => `${BASE}/datasets/cleaned-file`,
+
+  getReportData: () => get<BackendReportData>('/datasets/report-data'),
 }
+
 

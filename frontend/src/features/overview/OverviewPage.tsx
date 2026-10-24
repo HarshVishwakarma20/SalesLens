@@ -55,19 +55,14 @@ export function OverviewPage() {
   const handleDownloadPdf = () => {
     if (isDownloadingPdf) return
     setIsDownloadingPdf(true)
-    const toastId = toast.loading('Generating Executive PDF Report...')
-
-    setTimeout(() => {
-      try {
-        generatePdfReport(data)
-        toast.success('Executive PDF report downloaded to your files!', { id: toastId })
-      } catch (err: any) {
+    const toastId = toast.loading('Generating PDF Report...')
+    generatePdfReport(data)
+      .then(() => toast.success('PDF report downloaded!', { id: toastId }))
+      .catch((err: any) => {
         console.error('PDF export failed:', err)
-        toast.error(`PDF generation failed: ${err?.message || 'Unknown error'}`, { id: toastId })
-      } finally {
-        setIsDownloadingPdf(false)
-      }
-    }, 60)
+        toast.error('PDF generation failed: ' + (err?.message ?? 'Unknown error'), { id: toastId })
+      })
+      .finally(() => setIsDownloadingPdf(false))
   }
 
   return (
@@ -82,7 +77,7 @@ export function OverviewPage() {
             ) : (
               <FileText className="size-3.5" aria-hidden />
             )}
-            {isDownloadingPdf ? 'Generating PDF...' : 'Summary Report (PDF)'}
+            {isDownloadingPdf ? 'Generating PDF...' : 'Download Report (PDF)'}
           </Button>
         }
       />

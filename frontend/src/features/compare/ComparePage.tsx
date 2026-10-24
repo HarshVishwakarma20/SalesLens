@@ -17,7 +17,7 @@ import { Card, CardHeader } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { EChart, baseTooltip } from '@/components/charts/EChart'
 import { CHART_COLOURS } from '@/lib/colours'
-import { formatAxisK } from '@/lib/formatters'
+import { formatGBPCompact } from '@/lib/formatters'
 import { useDataset } from '@/hooks/useDataset'
 import {
   HISTORICAL_DATASETS,
@@ -66,7 +66,7 @@ export function ComparePage() {
 
     return {
       animationDuration: 700,
-      grid: { left: 60, right: 28, top: 36, bottom: 28 },
+      grid: { left: 72, right: 28, top: 36, bottom: 28 },
       legend: {
         top: 0,
         right: 10,
@@ -84,7 +84,7 @@ export function ComparePage() {
           params.forEach((p: any) => {
             html += `<div style="display:flex;align-items:center;justify-content:space-between;gap:16px;font-size:12px;margin-top:2px;">
               <span style="color:${p.color}">${p.seriesName}</span>
-              <span style="font-weight:bold;color:#f8fafc">£${(p.value || 0).toLocaleString()}</span>
+              <span style="font-weight:bold;color:#f8fafc">${formatGBPCompact(p.value || 0)}</span>
             </div>`
           })
           return html
@@ -103,12 +103,14 @@ export function ComparePage() {
       },
       yAxis: {
         type: 'value',
+        splitNumber: 4,
         splitLine: { lineStyle: { color: CHART_COLOURS.grid, type: 'dashed' } },
         axisLabel: {
           color: CHART_COLOURS.axis,
           fontSize: 10,
           fontFamily: 'JetBrains Mono, monospace',
-          formatter: (v: number) => `£${formatAxisK(v)}`,
+          hideOverlap: true,
+          formatter: (v: number) => formatGBPCompact(v),
         },
       },
       series: [
@@ -164,7 +166,7 @@ export function ComparePage() {
 
     return {
       animationDuration: 700,
-      grid: { left: 50, right: 24, top: 36, bottom: 60 },
+      grid: { left: 56, right: 24, top: 36, bottom: 60 },
       legend: {
         top: 0,
         right: 10,
@@ -186,15 +188,21 @@ export function ComparePage() {
           fontSize: 9,
           interval: 0,
           rotate: 30,
+          hideOverlap: true,
         },
       },
       yAxis: {
         type: 'value',
+        splitNumber: 4,
+        minInterval: 1,
         splitLine: { lineStyle: { color: CHART_COLOURS.grid, type: 'dashed' } },
         axisLabel: {
           color: CHART_COLOURS.axis,
           fontSize: 10,
           fontFamily: 'JetBrains Mono, monospace',
+          hideOverlap: true,
+          formatter: (v: number) =>
+            v >= 1000 ? `${(v / 1000).toFixed(1).replace(/\.0$/, '')}k` : String(Math.round(v)),
         },
       },
       series: [

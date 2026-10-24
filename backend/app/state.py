@@ -33,6 +33,9 @@ class _AppState:
     risk_df: Optional[pd.DataFrame] = None
     kpis: Optional[dict] = None
 
+    # Currency symbol detected from dataset (e.g. "£", "₹")
+    currency_symbol: str = "£"
+
     # File metadata
     cleaned_file_path: Optional[str] = None
     dataset_name: Optional[str] = None
@@ -60,6 +63,7 @@ class _AppState:
         self.anomaly_df = None
         self.risk_df = None
         self.kpis = None
+        self.currency_symbol = "£"
         self.cleaned_file_path = None
         self.dataset_name = None
         self.dataset_id = None

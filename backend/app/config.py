@@ -72,3 +72,13 @@ RISK_WEIGHTS: dict = {
 # ---------------------------------------------------------------------------
 DEFAULT_PAGE_SIZE: int = 50
 MAX_PAGE_SIZE: int = 500
+
+# ---------------------------------------------------------------------------
+# Report generation settings
+# ---------------------------------------------------------------------------
+# Minimum quantity of units sold for a product to appear in the PDF report
+MIN_PRODUCT_UNITS: int = 50
+# Currency symbols — UCI / UK default (£); India datasets detect and use ₹
+CURRENCY_SYMBOL: str = "\u00a3"          # £
+CURRENCY_SYMBOL_INDIA: str = "\u20b9"    # ₹
+

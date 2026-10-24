@@ -20,7 +20,7 @@ from fastapi.responses import StreamingResponse
 from app import state as _state_module
 from app.analytics.anomalies import anomaly_detection, stl_anomaly_detection
 from app.analytics.risk import customer_risk_score
-from app.config import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
+from app.config import CURRENCY_SYMBOL, DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
 from app.schemas import OkResponse, RiskWeightParams, StatusResponse, UploadResponse
 from app.services import (
     get_customer_detail,
@@ -266,6 +266,146 @@ def overview() -> dict:
     except Exception as exc:  # noqa: BLE001
         raise _http_error(500, str(exc)) from exc
     return sanitize(data)
+
+
+
+# ---------------------------------------------------------------------------
+# PDF Report Data (server-side join — one call replaces multiple paginated ones)
+# ---------------------------------------------------------------------------
+
+@router.get("/datasets/report-data", tags=["Analytics"])
+def report_data() -> dict:
+    """
+    Returns aggregated data for PDF report generation.
+    Performs server-side joins (risk + rfm + journey) so the frontend
+    does not need to paginate multiple endpoints.
+
+    Response keys
+    -------------
+    revenueAtRisk      : float   — sum of TotalRevenue for all High+Critical customers
+    highCriticalCount  : int     — count of all High+Critical customers
+    watchlist          : list    — top-10 High/Critical non-Lost customers with journey data
+    segmentRevenue     : list    — per-segment {Segment, Monetary (net), RevenueShare}
+    currencySymbol     : str     — detected currency symbol (e.g. "£" or "₹")
+    """
+    _guard()
+
+    # --- Build component DataFrames ----------------------------------------
+    rfm   = (_s.rfm_df[["CustomerID", "Segment", "Monetary"]].copy()
+             if _s.rfm_df is not None else pd.DataFrame(columns=["CustomerID", "Segment", "Monetary"]))
+    risk  = (_s.risk_df.copy()
+             if _s.risk_df is not None else pd.DataFrame())
+    jrn   = (_s.journey_df[["CustomerID", "OrderCount", "TotalRevenue"]].copy()
+             if _s.journey_df is not None else pd.DataFrame(columns=["CustomerID", "OrderCount", "TotalRevenue"]))
+
+    # --- Per-segment net revenue share (sales - returns, by RFM segment) ---
+    if rfm.empty or _s.sales_df is None or _s.sales_df.empty:
+        seg_rev_records: list[dict] = []
+    else:
+        sales_cust = (
+            _s.sales_df.groupby("CustomerID")["LineValue"]
+            .sum()
+            .rename("GrossSales")
+        )
+        if _s.returns_df is not None and not _s.returns_df.empty:
+            ret_cust = (
+                _s.returns_df.groupby("CustomerID")["LineValue"]
+                .apply(lambda x: float(x.abs().sum()))
+                .rename("ReturnValue")
+            )
+        else:
+            ret_cust = pd.Series(dtype=float, name="ReturnValue")
+        net_cust = sales_cust.sub(ret_cust, fill_value=0.0).rename("NetRevenue")
+        net_df = (
+            net_cust.reset_index()
+            .merge(rfm[["CustomerID", "Segment"]], on="CustomerID", how="inner")
+        )
+        seg_rev = (
+            net_df.groupby("Segment", as_index=False)["NetRevenue"]
+            .sum()
+        )
+        # Denominator = portfolio net revenue (same definition as the KPI card)
+        gross_all = float(_s.sales_df["LineValue"].sum())
+        ret_all = (
+            float(_s.returns_df["LineValue"].abs().sum())
+            if _s.returns_df is not None and not _s.returns_df.empty
+            else 0.0
+        )
+        total_net = gross_all - ret_all
+        if total_net != 0:
+            shares = (seg_rev["NetRevenue"] / total_net * 100).round(2)
+            # Renormalise so displayed shares sum to exactly 100%
+            # (covers rounding + rare return-only customers outside RFM)
+            drift = round(100.0 - float(shares.sum()), 2)
+            if drift != 0 and len(shares) > 0:
+                i = int(shares.abs().to_numpy().argmax())
+                shares.iloc[i] = round(float(shares.iloc[i]) + drift, 2)
+            seg_rev["RevenueShare"] = shares
+        else:
+            seg_rev["RevenueShare"] = 0.0
+        # Keep Monetary key for API compat (now holds segment net revenue)
+        seg_rev = seg_rev.rename(columns={"NetRevenue": "Monetary"})
+        seg_rev_records = seg_rev.to_dict(orient="records")
+
+    # --- Risk + RFM + Journey join ------------------------------------------
+    if risk.empty:
+        combined = pd.DataFrame()
+    else:
+        combined = (
+            risk
+            .merge(rfm[["CustomerID", "Segment"]], on="CustomerID", how="left")
+            .merge(jrn, on="CustomerID", how="left")
+        )
+        combined["Segment"]      = combined["Segment"].fillna("Unknown")
+        combined["OrderCount"]   = combined["OrderCount"].fillna(0).astype(int)
+        combined["TotalRevenue"] = combined["TotalRevenue"].fillna(0.0)
+
+    # --- Revenue at Risk (ALL high/critical) --------------------------------
+    if combined.empty:
+        revenue_at_risk  = 0.0
+        high_crit_count  = 0
+    else:
+        hi_crit = combined[combined["RiskBand"].isin(["High", "Critical"])]
+        revenue_at_risk = float(hi_crit["TotalRevenue"].sum())
+        high_crit_count = int(len(hi_crit))
+
+    # --- Watchlist: top-10 High/Critical excluding Lost ---------------------
+    if combined.empty:
+        watchlist_records: list[dict] = []
+    else:
+        mask = (
+            combined["RiskBand"].isin(["High", "Critical"]) &
+            (combined["Segment"].str.lower() != "lost")
+        )
+        top10 = (
+            combined[mask]
+            .sort_values("RiskScore", ascending=False)
+            .head(10)
+        )
+        watchlist_records = [
+            {
+                "CustomerID":   int(r["CustomerID"]),
+                "Segment":      str(r["Segment"]),
+                "RiskBand":     str(r["RiskBand"]),
+                "RiskScore":    round(float(r["RiskScore"]), 2),
+                "OrderCount":   int(r["OrderCount"]),
+                "TotalRevenue": round(float(r["TotalRevenue"]), 2),
+            }
+            for _, r in top10.iterrows()
+        ]
+
+    # --- Currency symbol ---------------------------------------------------
+    currency_symbol = (
+        _s.kpis.get("currencySymbol", CURRENCY_SYMBOL) if _s.kpis else CURRENCY_SYMBOL
+    )
+
+    return sanitize({
+        "revenueAtRisk":     revenue_at_risk,
+        "highCriticalCount": high_crit_count,
+        "watchlist":         watchlist_records,
+        "segmentRevenue":    seg_rev_records,
+        "currencySymbol":    currency_symbol,
+    })
 
 
 # ---------------------------------------------------------------------------

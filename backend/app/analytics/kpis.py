@@ -12,6 +12,8 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
+from app.config import CURRENCY_SYMBOL, CURRENCY_SYMBOL_INDIA
+
 
 def compute_headline_kpis(
     rfm_df: pd.DataFrame,
@@ -58,12 +60,29 @@ def compute_headline_kpis(
     churn_pct = round(churn * 100, 2) if churn is not None else None
     rev_pct = round(rev_ret, 2) if rev_ret is not None else None
     return_pct = round(overall_return_rate * 100, 2)
+
+    # Lost-segment share (shown as 'Lost Customers %' on the scorecard)
+    lost_pct: float | None = None
+    if not rfm_df.empty:
+        lost_count = int((rfm_df["Segment"] == "Lost").sum())
+        lost_pct = round(lost_count / total_customers * 100, 2) if total_customers > 0 else None
+
+    # Detect currency symbol from Country column (if present)
+    currency_symbol = CURRENCY_SYMBOL
+    for df in (sales_df,):
+        if "Country" in df.columns and len(df) > 0:
+            top_country = str(df["Country"].mode().iloc[0]).lower()
+            if "india" in top_country or top_country in ("in", "ind"):
+                currency_symbol = CURRENCY_SYMBOL_INDIA
+            break
+
     return {
         "totalCustomers": total_customers,
         "activeCustomers": active,
         "repeatRate": round(repeat_rate, 4),
         "churnRate": round(churn, 4) if churn is not None else None,
         "churnRateIndicative": churn_pct,
+        "lostPct": lost_pct,
         "revenueRetentionPct": rev_pct,
         "revRetention": rev_pct,
         "grossSales": round(gross_sales, 2),
@@ -72,6 +91,7 @@ def compute_headline_kpis(
         "netRevenue": round(net_rev, 2),
         "overallReturnRate": round(overall_return_rate, 4),
         "returnRate": return_pct,
+        "currencySymbol": currency_symbol,
     }
 
 

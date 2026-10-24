@@ -7,7 +7,6 @@ import { useDataset } from '@/hooks/useDataset'
 import { useFilters } from '@/hooks/useFilters'
 import { ALL_SEGMENTS } from '@/stores/filters'
 import { SEGMENT_COLOURS } from '@/lib/colours'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { generatePdfReport } from '@/lib/pdf-report'
 import type { Dataset } from '@/lib/types'
 import { cn } from '@/lib/utils'
@@ -18,84 +17,66 @@ const pill =
 function SegmentFilter() {
   const { segments, toggleSegment, selectAllSegments, isSelected, total } = useFilters()
   return (
-    <Popover>
-      <PopoverTrigger className={pill}>
-        <Filter className="size-3.5 text-muted-foreground" aria-hidden />
-        <span className="text-center leading-tight">
-          Segments
-          <br className="xl:hidden" /> ({segments.length}/{total})
-        </span>
-        <ChevronDown className="size-3.5 text-faint" aria-hidden />
-      </PopoverTrigger>
-      <PopoverContent className="w-56">
-        <div className="mb-2 flex items-center justify-between">
-          <span className="text-[11px] font-semibold uppercase tracking-wider text-faint">Segments</span>
-          <button type="button" onClick={selectAllSegments} className="text-[11px] text-accent hover:underline">
-            Select all
-          </button>
+    <div className="relative">
+      <details className="group">
+        <summary className={cn(pill, 'cursor-pointer list-none')}>
+          <Filter className="size-3.5 text-muted-foreground" aria-hidden />
+          <span className="text-center leading-tight">
+            Segments
+            <br className="xl:hidden" /> ({segments.length}/{total})
+          </span>
+          <ChevronDown className="size-3.5 text-faint" aria-hidden />
+        </summary>
+        <div className="absolute left-0 top-full z-50 mt-1 w-56 rounded-xl border border-border bg-card p-2 shadow-lg">
+          <div className="mb-2 flex items-center justify-between">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-faint">Segments</span>
+            <button type="button" onClick={selectAllSegments} className="text-[11px] text-accent hover:underline">
+              Select all
+            </button>
+          </div>
+          <ul className="flex flex-col gap-0.5">
+            {ALL_SEGMENTS.map((seg) => (
+              <li key={seg}>
+                <label className="flex cursor-pointer items-center gap-2.5 rounded-lg px-2 py-1.5 text-sm hover:bg-raised">
+                  <input
+                    type="checkbox"
+                    checked={isSelected(seg)}
+                    onChange={() => toggleSegment(seg)}
+                    className="size-3.5 accent-[var(--accent)]"
+                  />
+                  <span className="size-2 rounded-full" style={{ backgroundColor: SEGMENT_COLOURS[seg] }} aria-hidden />
+                  {seg}
+                </label>
+              </li>
+            ))}
+          </ul>
         </div>
-        <ul className="flex flex-col gap-0.5">
-          {ALL_SEGMENTS.map((seg) => (
-            <li key={seg}>
-              <label className="flex cursor-pointer items-center gap-2.5 rounded-lg px-2 py-1.5 text-sm hover:bg-raised">
-                <input
-                  type="checkbox"
-                  checked={isSelected(seg)}
-                  onChange={() => toggleSegment(seg)}
-                  className="size-3.5 accent-[var(--accent)]"
-                />
-                <span className="size-2 rounded-full" style={{ backgroundColor: SEGMENT_COLOURS[seg] }} aria-hidden />
-                {seg}
-              </label>
-            </li>
-          ))}
-        </ul>
-      </PopoverContent>
-    </Popover>
+      </details>
+    </div>
   )
 }
 
-function ExportMenu({ dataset }: { dataset?: Dataset }) {
-  const handleExport = (fmt: string) => {
-    if (fmt === 'PDF report') {
-      const toastId = toast.loading('Generating Executive PDF Report...')
-      setTimeout(() => {
-        try {
-          generatePdfReport(dataset)
-          toast.success('Executive PDF report downloaded to your files!', { id: toastId })
-        } catch (err: any) {
-          console.error('PDF export failed:', err)
-          toast.error(`PDF generation failed: ${err?.message || 'Unknown error'}`, { id: toastId })
-        }
-      }, 60)
-    } else if (fmt === 'CSV') {
-      toast.info('Downloading Dataset CSV...')
-      window.open('/api/v1/datasets/export/customer_journey.csv', '_blank')
-    } else if (fmt === 'XLSX') {
-      toast.info('Downloading Cleaned Excel File...')
-      window.open('/api/v1/datasets/cleaned-file', '_blank')
-    }
+function PdfButton({ dataset }: { dataset?: Dataset }) {
+  const handlePdf = () => {
+    const toastId = toast.loading('Generating PDF Report...')
+    generatePdfReport(dataset)
+      .then(() => toast.success('PDF report downloaded!', { id: toastId }))
+      .catch((err: any) => {
+        console.error('PDF export failed:', err)
+        toast.error('PDF generation failed: ' + (err?.message ?? 'Unknown error'), { id: toastId })
+      })
   }
 
   return (
-    <Popover>
-      <PopoverTrigger className={cn(pill, 'px-2.5')} aria-label="Export">
-        <Download className="size-4" aria-hidden />
-        <ChevronDown className="size-3.5 text-faint" aria-hidden />
-      </PopoverTrigger>
-      <PopoverContent align="end" className="w-44 p-1.5">
-        {['CSV', 'XLSX', 'PDF report'].map((fmt) => (
-          <button
-            key={fmt}
-            type="button"
-            onClick={() => handleExport(fmt)}
-            className="w-full rounded-lg px-2.5 py-1.5 text-left text-sm text-foreground hover:bg-raised"
-          >
-            Export {fmt}
-          </button>
-        ))}
-      </PopoverContent>
-    </Popover>
+    <button
+      type="button"
+      onClick={handlePdf}
+      className={cn(pill, 'px-2.5')}
+      aria-label="Download PDF Report"
+    >
+      <Download className="size-4" aria-hidden />
+      <span className="hidden sm:inline">PDF Report</span>
+    </button>
   )
 }
 
@@ -123,7 +104,7 @@ export function Topbar() {
         <button type="button" className={pill} onClick={() => toast('Date range picker', { description: 'Full dataset range selected.' })}>
           <Calendar className="size-3.5 text-muted-foreground" aria-hidden />
           <span className="num-tabular">
-            {dataset ? `${dataset.dateRange.from} - ${dataset.dateRange.to}` : '...'}
+            {dataset ? dataset.dateRange.from + ' - ' + dataset.dateRange.to : '...'}
           </span>
         </button>
         <SegmentFilter />
@@ -135,7 +116,7 @@ export function Topbar() {
           <span className="hidden sm:inline">Search...</span>
           <kbd className="hidden rounded border border-border bg-card px-1.5 py-0.5 font-mono text-[10px] text-faint sm:inline">Ctrl K</kbd>
         </button>
-        <ExportMenu dataset={dataset} />
+        <PdfButton dataset={dataset} />
         <button
           type="button"
           onClick={toggleTheme}

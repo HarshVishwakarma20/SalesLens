@@ -40,6 +40,7 @@ def product_contribution(
     """
     # Gross sales and return value per SKU
     sold = sales_df.groupby("StockCode")["LineValue"].sum().rename("GrossSales")
+    qty_sold = sales_df.groupby("StockCode")["Quantity"].sum().rename("TotalQtySold")
 
     if not returns_df.empty:
         back = (
@@ -75,7 +76,7 @@ def product_contribution(
     )
 
     product_df = (
-        pd.concat([sold, back, net, buyers, attach, return_rate], axis=1)
+        pd.concat([sold, back, net, buyers, attach, return_rate, qty_sold], axis=1)
         .fillna(0)
     )
     product_df.index.name = "StockCode"
