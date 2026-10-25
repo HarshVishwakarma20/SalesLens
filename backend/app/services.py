@@ -10,6 +10,7 @@ Processing model (mirrors notebook cell 28):
 """
 from __future__ import annotations
 
+import threading
 import traceback
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
@@ -133,37 +134,79 @@ def _run_pipeline(
             return
         _s.kpis = kpis
 
+        # In-memory analytics computation is complete; unblock user and website immediately
+        if _is_current(generation):
+            _s.status = "ready"
+
         persist_name = _s.dataset_name or "uploaded_dataset"
         persist_type = "raw" if _s.is_raw_input else "cleaned"
         persist_summary = _s.cleaning_summary or {}
 
-        # 9. Persist to PostgreSQL database (if connected)
-        try:
-            from app.db_service import persist_analytics_results
-            monthly_trends = compute_monthly_trends(sales_df, returns_df)
-            daily_sales = compute_daily_sales(sales_df)
-            ds_id = persist_analytics_results(
-                filename=persist_name,
-                file_type=persist_type,
-                cleaning_summary=persist_summary,
-                kpis=kpis,
-                monthly_trends=monthly_trends,
-                daily_sales=daily_sales,
-                journey_df=journey_df,
-                rfm_df=rfm_df,
-                cohort_df=cohort_df,
-                leakage_df=leakage_df,
-                product_df=product_df,
-                anomaly_df=anomaly_df,
-                risk_df=risk_df,
-            )
-            if _is_current(generation):
-                _s.dataset_id = ds_id
-        except Exception as db_exc:
-            print(f"[SalesLens DB] Database persistence skipped or warning: {db_exc}")
+        # 9. Asynchronously persist to PostgreSQL database in background while user browses website
+        def _persist_in_background(
+            gen: int,
+            p_name: str,
+            p_type: str,
+            p_sum: dict,
+            p_kpis: dict,
+            p_sales: pd.DataFrame,
+            p_returns: pd.DataFrame,
+            p_journey: pd.DataFrame,
+            p_rfm: pd.DataFrame,
+            p_cohort: pd.DataFrame,
+            p_leakage: pd.DataFrame,
+            p_product: pd.DataFrame,
+            p_anomaly: pd.DataFrame,
+            p_risk: pd.DataFrame,
+        ) -> None:
+            try:
+                from app.db_service import persist_analytics_results
 
-        if _is_current(generation):
-            _s.status = "ready"
+                monthly_trends = compute_monthly_trends(p_sales, p_returns)
+                daily_sales = compute_daily_sales(p_sales)
+                ds_id = persist_analytics_results(
+                    filename=p_name,
+                    file_type=p_type,
+                    cleaning_summary=p_sum,
+                    kpis=p_kpis,
+                    monthly_trends=monthly_trends,
+                    daily_sales=daily_sales,
+                    journey_df=p_journey,
+                    rfm_df=p_rfm,
+                    cohort_df=p_cohort,
+                    leakage_df=p_leakage,
+                    product_df=p_product,
+                    anomaly_df=p_anomaly,
+                    risk_df=p_risk,
+                )
+                if _is_current(gen):
+                    _s.dataset_id = ds_id
+                print(f"[SalesLens DB] Background persistence completed successfully (dataset ID: {ds_id}).")
+            except Exception as db_exc:
+                print(f"[SalesLens DB] Background database persistence skipped or warning: {db_exc}")
+
+        t = threading.Thread(
+            target=_persist_in_background,
+            args=(
+                generation,
+                persist_name,
+                persist_type,
+                persist_summary,
+                kpis,
+                sales_df,
+                returns_df,
+                journey_df,
+                rfm_df,
+                cohort_df,
+                leakage_df,
+                product_df,
+                anomaly_df,
+                risk_df,
+            ),
+            daemon=True,
+            name=f"db-persist-{generation}",
+        )
+        t.start()
 
     except Exception:  # noqa: BLE001
         if _is_current(generation):

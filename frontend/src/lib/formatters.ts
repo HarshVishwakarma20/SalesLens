@@ -16,8 +16,14 @@ export function formatPercent(value: number, digits = 1) {
 export function formatGBPCompact(value: number) {
   const abs = Math.abs(value)
   const sign = value < 0 ? '-' : ''
-  if (abs >= 1_000_000) return `${sign}£${(abs / 1_000_000).toFixed(2)}M`
-  if (abs >= 1_000) return `${sign}£${(abs / 1_000).toFixed(1)}k`
+  if (abs >= 1_000_000) {
+    const formatted = (abs / 1_000_000).toFixed(2).replace(/\.00$/, '').replace(/(\.[1-9])0$/, '$1')
+    return `${sign}£${formatted}M`
+  }
+  if (abs >= 1_000) {
+    const formatted = (abs / 1_000).toFixed(1).replace(/\.0$/, '')
+    return `${sign}£${formatted}k`
+  }
   return `${sign}£${abs.toFixed(0)}`
 }
 

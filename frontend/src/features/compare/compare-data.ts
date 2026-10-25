@@ -249,7 +249,12 @@ export function computeComparison(
   const curMonthly = current?.monthly || []
   const monthlyComparison = baseline.monthly.map((b, idx) => {
     const curMonthObj = curMonthly[idx]
-    const curVal = curMonthObj ? Number(curMonthObj.sales) : b.sales * 1.15
+    let curVal = curMonthObj ? Number(curMonthObj.sales) : b.sales * 1.15
+    // If current sales are stored in thousands (e.g. 510 in demo data) while baseline is in full GBP (580,000),
+    // normalize to full GBP so both dual series share the same Y-axis scale seamlessly.
+    if (curVal > 0 && curVal < 10000 && b.sales >= 10000) {
+      curVal = curVal * 1000
+    }
     return {
       month: curMonthObj?.month || b.month,
       previous: Math.round(b.sales),

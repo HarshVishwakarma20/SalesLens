@@ -66,7 +66,7 @@ export function EChart({ option, className, ariaLabel, zoomable = true }: EChart
   }, [option, zoomable])
 
   return (
-    <div role="img" aria-label={ariaLabel} className={cn('w-full', className)}>
+    <div role="img" aria-label={ariaLabel} className={cn('h-full w-full', className)}>
       <ReactEChartsCore
         echarts={echarts}
         option={mergedOption}

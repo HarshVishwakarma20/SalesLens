@@ -4,12 +4,10 @@
  * Each hook:
  *  - Uses `datasetName` from @/stores/dataset as part of the query key
  *    so React Query automatically re-fetches when a new dataset is uploaded.
- *  - Falls back to the existing mock data only when status === 'idle'
- *    (no upload has ever happened in this session).
+ *  - When status is 'idle' or before any file is uploaded, returns empty
+ *    collections so no dummy/mock data is displayed.
  *  - Is disabled while status is 'uploading' or 'processing' to avoid
  *    race conditions.
- *
- * Pages call these hooks instead of importing constants from mock-data.ts.
  */
 import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
@@ -24,22 +22,6 @@ import type {
     RiskScore,
     SegmentName,
 } from '@/lib/types'
-import {
-    COHORT_ROWS,
-    DAILY_SERIES,
-    JOURNEY_CUSTOMERS,
-    ORDERS_HIST,
-    GAP_HIST,
-    ACQUIRED_PER_MONTH,
-    PRODUCTS,
-    RETURNS_BY_PRODUCT,
-    RETURNS_BY_SEGMENT,
-    RETURNS_BY_MONTH,
-    RFM_CUSTOMERS,
-    RFM_SCATTER,
-    RISK_SCORES,
-    DEMO_DATASET,
-} from '@/lib/mock-data'
 
 // ─── Shared helpers ───────────────────────────────────────────────────────────
 
@@ -48,9 +30,9 @@ function useQueryOpts() {
     const status = useDatasetStore((s) => s.status)
     const datasetName = useDatasetStore((s) => s.datasetName)
     return {
-        enabled: status === 'ready',
-        isIdle: status === 'idle',
-        datasetName: datasetName ?? 'demo',
+        enabled: status === 'ready' && Boolean(datasetName),
+        isIdle: status === 'idle' || !datasetName,
+        datasetName: datasetName ?? '',
         staleTime: 0 as const,
         refetchOnMount: 'always' as const,
         retry: 2 as const,
@@ -62,8 +44,14 @@ function useQueryOpts() {
 
 export interface SegmentsData {
     rfmCustomers: RfmCustomer[]
-    rfmScatter: typeof RFM_SCATTER
-    segments: typeof DEMO_DATASET.segments
+    rfmScatter: { id: string; recency: number; frequency: number; monetary: number; r: number; f: number; segment: SegmentName }[]
+    segments: { name: SegmentName; count: number; share: number }[]
+}
+
+const EMPTY_SEGMENTS: SegmentsData = {
+    rfmCustomers: [],
+    rfmScatter: [],
+    segments: [],
 }
 
 export function useSegmentsData(): { data: SegmentsData; isLoading: boolean } {
@@ -73,7 +61,6 @@ export function useSegmentsData(): { data: SegmentsData; isLoading: boolean } {
         queryKey: ['segments-data', opts.datasetName],
         queryFn: async (): Promise<SegmentsData> => {
             const res = await api.getSegments(1, 500)
-            // Map backend RFM rows to frontend RfmCustomer shape
             const rfmCustomers: RfmCustomer[] = res.items.map((item) => ({
                 id: String(item.CustomerID),
                 recency: item.Recency,
@@ -85,7 +72,6 @@ export function useSegmentsData(): { data: SegmentsData; isLoading: boolean } {
                 rfmScore: item.RFM_Score,
                 segment: item.Segment as SegmentName,
             }))
-            // Build scatter data from the same RFM rows
             const rfmScatter = rfmCustomers.map((c) => ({
                 id: c.id,
                 recency: c.recency,
@@ -95,7 +81,6 @@ export function useSegmentsData(): { data: SegmentsData; isLoading: boolean } {
                 f: c.f,
                 segment: c.segment,
             }))
-            // Segment distribution
             const segments = res.segmentDistribution.map((s) => ({
                 name: s.segment as SegmentName,
                 count: s.count,
@@ -111,17 +96,10 @@ export function useSegmentsData(): { data: SegmentsData; isLoading: boolean } {
     })
 
     if (opts.isIdle || (!query.data && !query.isLoading)) {
-        return {
-            data: {
-                rfmCustomers: RFM_CUSTOMERS,
-                rfmScatter: RFM_SCATTER,
-                segments: DEMO_DATASET.segments,
-            },
-            isLoading: false,
-        }
+        return { data: EMPTY_SEGMENTS, isLoading: false }
     }
     return {
-        data: query.data ?? { rfmCustomers: RFM_CUSTOMERS, rfmScatter: RFM_SCATTER, segments: DEMO_DATASET.segments },
+        data: query.data ?? EMPTY_SEGMENTS,
         isLoading: query.isLoading,
     }
 }
@@ -130,9 +108,16 @@ export function useSegmentsData(): { data: SegmentsData; isLoading: boolean } {
 
 export interface JourneyData {
     customers: JourneyCustomer[]
-    ordersHist: typeof ORDERS_HIST
-    gapHist: typeof GAP_HIST
-    acquiredPerMonth: typeof ACQUIRED_PER_MONTH
+    ordersHist: { orders: string; count: number }[]
+    gapHist: { gap: string; count: number }[]
+    acquiredPerMonth: { month: string; acquired: number }[]
+}
+
+const EMPTY_JOURNEY: JourneyData = {
+    customers: [],
+    ordersHist: [],
+    gapHist: [],
+    acquiredPerMonth: [],
 }
 
 export function useJourneyData(): { data: JourneyData; isLoading: boolean } {
@@ -144,34 +129,42 @@ export function useJourneyData(): { data: JourneyData; isLoading: boolean } {
             const res = await api.getJourney(1, 500)
             const customers: JourneyCustomer[] = res.items.map((item) => ({
                 id: String(item.CustomerID),
-                firstPurchase: item.FirstPurchaseDate,
-                lastPurchase: item.LastPurchaseDate,
-                orders: item.OrderCount,
-                revenue: item.TotalRevenue,
-                avgGap: item.AvgGap,
-                gapTrend: (item.GapTrend ?? 'flat') as 'up' | 'down' | 'flat',
-                segment: 'Promising' as SegmentName, // Journey endpoint doesn't include segment by default
-                band: 'Low' as const,
-                score: 0,
+                firstPurchase: item.FirstPurchaseDate ?? '',
+                lastPurchase: item.LastPurchaseDate ?? '',
+                orders: item.OrderCount ?? 0,
+                revenue: item.TotalRevenue ?? 0,
+                avgGap: item.AvgGap ?? 0,
+                gapTrend: item.GapTrend ?? 'flat',
+                segment: 'Promising' as SegmentName,
+                band: 'Medium',
+                score: 30,
             }))
-            // Build order distribution histogram from the fetched data
-            const orderCounts = customers.map((c) => c.orders)
-            const ordersHist = [
-                { bucket: '1', count: orderCounts.filter((o) => o === 1).length },
-                { bucket: '2', count: orderCounts.filter((o) => o === 2).length },
-                { bucket: '3', count: orderCounts.filter((o) => o === 3).length },
-                { bucket: '4', count: orderCounts.filter((o) => o === 4).length },
-                { bucket: '5+', count: orderCounts.filter((o) => o >= 5).length },
-            ]
-            // Build gap histogram
-            const gaps = customers.map((c) => c.avgGap).filter((g): g is number => g !== null)
-            const gapHist = Array.from({ length: 9 }, (_, i) => ({
-                bucket: `${i * 20}-${(i + 1) * 20}`,
-                count: gaps.filter((g) => g >= i * 20 && g < (i + 1) * 20).length,
-            }))
-            // Acquired per month — group by first purchase month
+
+            // Build histogram buckets
+            const orderCounts: Record<string, number> = { '1': 0, '2-3': 0, '4-6': 0, '7-10': 0, '11+': 0 }
+            for (const c of customers) {
+                if (c.orders === 1) orderCounts['1']++
+                else if (c.orders <= 3) orderCounts['2-3']++
+                else if (c.orders <= 6) orderCounts['4-6']++
+                else if (c.orders <= 10) orderCounts['7-10']++
+                else orderCounts['11+']++
+            }
+            const ordersHist = Object.entries(orderCounts).map(([orders, count]) => ({ orders, count }))
+
+            const gapCounts: Record<string, number> = { '<15d': 0, '15-30d': 0, '31-60d': 0, '61-90d': 0, '90d+': 0 }
+            for (const c of customers) {
+                const g = c.avgGap ?? 0
+                if (g < 15) gapCounts['<15d']++
+                else if (g <= 30) gapCounts['15-30d']++
+                else if (g <= 60) gapCounts['31-60d']++
+                else if (g <= 90) gapCounts['61-90d']++
+                else gapCounts['90d+']++
+            }
+            const gapHist = Object.entries(gapCounts).map(([gap, count]) => ({ gap, count }))
+
             const monthCounts: Record<string, number> = {}
             for (const c of customers) {
+                if (!c.firstPurchase) continue
                 const m = c.firstPurchase.slice(0, 7)
                 monthCounts[m] = (monthCounts[m] || 0) + 1
             }
@@ -188,17 +181,10 @@ export function useJourneyData(): { data: JourneyData; isLoading: boolean } {
         retryDelay: opts.retryDelay,
     })
 
-    const fallback: JourneyData = {
-        customers: JOURNEY_CUSTOMERS,
-        ordersHist: ORDERS_HIST,
-        gapHist: GAP_HIST,
-        acquiredPerMonth: ACQUIRED_PER_MONTH,
-    }
-
     if (opts.isIdle || (!query.data && !query.isLoading)) {
-        return { data: fallback, isLoading: false }
+        return { data: EMPTY_JOURNEY, isLoading: false }
     }
-    return { data: query.data ?? fallback, isLoading: query.isLoading }
+    return { data: query.data ?? EMPTY_JOURNEY, isLoading: query.isLoading }
 }
 
 // ─── Products ─────────────────────────────────────────────────────────────────
@@ -229,9 +215,9 @@ export function useProductsData(): { data: Product[]; isLoading: boolean } {
     })
 
     if (opts.isIdle || (!query.data && !query.isLoading)) {
-        return { data: PRODUCTS, isLoading: false }
+        return { data: [], isLoading: false }
     }
-    return { data: query.data ?? PRODUCTS, isLoading: query.isLoading }
+    return { data: query.data ?? [], isLoading: query.isLoading }
 }
 
 // ─── Returns ──────────────────────────────────────────────────────────────────
@@ -241,6 +227,13 @@ export interface ReturnsData {
     bySegment: ReturnRow[]
     byMonth: ReturnRow[]
     portfolioAvgReturnRate: number
+}
+
+const EMPTY_RETURNS: ReturnsData = {
+    byProduct: [],
+    bySegment: [],
+    byMonth: [],
+    portfolioAvgReturnRate: 0,
 }
 
 export function useReturnsData(): { data: ReturnsData; isLoading: boolean } {
@@ -262,10 +255,10 @@ export function useReturnsData(): { data: ReturnsData; isLoading: boolean } {
                 flagged: r.Flagged,
             })
             return {
-                byProduct: skuRes.records.map(mapRow),
-                bySegment: segRes.records.map(mapRow),
-                byMonth: monthRes.records.map(mapRow),
-                portfolioAvgReturnRate: skuRes.portfolioAvgReturnRate,
+                byProduct: (skuRes.records ?? []).map(mapRow),
+                bySegment: (segRes.records ?? []).map(mapRow),
+                byMonth: (monthRes.records ?? []).map(mapRow),
+                portfolioAvgReturnRate: skuRes.portfolioAvgReturnRate ?? 0,
             }
         },
         enabled: opts.enabled,
@@ -275,17 +268,10 @@ export function useReturnsData(): { data: ReturnsData; isLoading: boolean } {
         retryDelay: opts.retryDelay,
     })
 
-    const fallback: ReturnsData = {
-        byProduct: RETURNS_BY_PRODUCT,
-        bySegment: RETURNS_BY_SEGMENT,
-        byMonth: RETURNS_BY_MONTH,
-        portfolioAvgReturnRate: 0.0512,
-    }
-
     if (opts.isIdle || (!query.data && !query.isLoading)) {
-        return { data: fallback, isLoading: false }
+        return { data: EMPTY_RETURNS, isLoading: false }
     }
-    return { data: query.data ?? fallback, isLoading: query.isLoading }
+    return { data: query.data ?? EMPTY_RETURNS, isLoading: query.isLoading }
 }
 
 // ─── Anomalies ────────────────────────────────────────────────────────────────
@@ -316,9 +302,9 @@ export function useAnomaliesData(): { data: AnomalyDay[]; isLoading: boolean } {
     })
 
     if (opts.isIdle || (!query.data && !query.isLoading)) {
-        return { data: DAILY_SERIES, isLoading: false }
+        return { data: [], isLoading: false }
     }
-    return { data: query.data ?? DAILY_SERIES, isLoading: query.isLoading }
+    return { data: query.data ?? [], isLoading: query.isLoading }
 }
 
 // ─── Risk ─────────────────────────────────────────────────────────────────────
@@ -336,7 +322,7 @@ export function useRiskData(): { data: RiskScore[]; isLoading: boolean } {
                 const maxIdx = vals.indexOf(Math.max(...vals))
                 return {
                     id: String(item.CustomerID),
-                    segment: 'Promising' as SegmentName, // Risk endpoint may not have segment
+                    segment: 'Promising' as SegmentName,
                     band: item.RiskBand as RiskScore['band'],
                     score: item.RiskScore,
                     rfmDecay: item.RFMDecay ?? 0,
@@ -356,9 +342,9 @@ export function useRiskData(): { data: RiskScore[]; isLoading: boolean } {
     })
 
     if (opts.isIdle || (!query.data && !query.isLoading)) {
-        return { data: RISK_SCORES, isLoading: false }
+        return { data: [], isLoading: false }
     }
-    return { data: query.data ?? RISK_SCORES, isLoading: query.isLoading }
+    return { data: query.data ?? [], isLoading: query.isLoading }
 }
 
 // ─── Cohorts ──────────────────────────────────────────────────────────────────
@@ -370,7 +356,6 @@ export function useCohortsData(): { data: CohortRow[]; isLoading: boolean } {
         queryKey: ['cohorts-data', opts.datasetName],
         queryFn: async (): Promise<CohortRow[]> => {
             const res = await api.getCohorts()
-            // Group records by CohortMonth
             const grouped: Record<string, typeof res.records> = {}
             for (const r of res.records) {
                 const key = String(r.CohortMonth)
@@ -380,7 +365,6 @@ export function useCohortsData(): { data: CohortRow[]; isLoading: boolean } {
             return Object.entries(grouped)
                 .sort(([a], [b]) => a.localeCompare(b))
                 .map(([label, rows]) => {
-                    // Sort by MonthIndex
                     const sorted = [...rows].sort((a, b) => a.MonthIndex - b.MonthIndex)
                     return {
                         label,
@@ -398,7 +382,7 @@ export function useCohortsData(): { data: CohortRow[]; isLoading: boolean } {
     })
 
     if (opts.isIdle || (!query.data && !query.isLoading)) {
-        return { data: COHORT_ROWS, isLoading: false }
+        return { data: [], isLoading: false }
     }
-    return { data: query.data ?? COHORT_ROWS, isLoading: query.isLoading }
+    return { data: query.data ?? [], isLoading: query.isLoading }
 }

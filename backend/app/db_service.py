@@ -377,3 +377,50 @@ def get_stored_overview(db: Session, dataset_id: int) -> dict[str, Any] | None:
             f"Overall repeat purchase rate is {kpi.repeat_rate:.1f}%.",
         ],
     }
+
+
+def cleanup_storage_files() -> int:
+    """Remove stored cleaned and raw temporary files from backend storage to reclaim disk space."""
+    from app.config import STORAGE_DIR
+    deleted_count = 0
+    if STORAGE_DIR.exists():
+        for f in list(STORAGE_DIR.glob("*.*")):
+            try:
+                if f.is_file():
+                    f.unlink()
+                    deleted_count += 1
+            except Exception as e:
+                logger.warning(f"Failed to delete storage file {f}: {e}")
+    return deleted_count
+
+
+def delete_dataset(db: Session, dataset_id: int) -> bool:
+    """Delete a dataset and all associated cascaded child records by ID, and remove its physical files from storage."""
+    from app.config import STORAGE_DIR
+    ds = db.query(DatasetModel).filter(DatasetModel.id == dataset_id).first()
+    if ds is not None:
+        ds_name = ds.dataset_name
+        # Delete associated files in storage
+        if STORAGE_DIR.exists() and ds_name:
+            stem = ds_name.rsplit(".", 1)[0]
+            for f in list(STORAGE_DIR.glob(f"*{stem}*")):
+                try:
+                    if f.is_file():
+                        f.unlink()
+                except Exception as e:
+                    logger.warning(f"Failed to delete storage file {f}: {e}")
+        db.delete(ds)
+        db.commit()
+        return True
+    return False
+
+
+def clear_all_datasets(db: Session) -> int:
+    """Delete all datasets and all associated child records from the database, and purge storage."""
+    datasets = db.query(DatasetModel).all()
+    count = len(datasets)
+    for ds in datasets:
+        db.delete(ds)
+    db.commit()
+    cleanup_storage_files()
+    return count

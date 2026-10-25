@@ -12,7 +12,7 @@ interface FiltersState {
 }
 
 export const useFiltersStore = create<FiltersState>((set) => ({
-  datasetId: 'uci-demo',
+  datasetId: '',
   segments: ALL_SEGMENTS.filter((s) => s !== 'Lost'),
   toggleSegment: (segment) =>
     set((state) => ({

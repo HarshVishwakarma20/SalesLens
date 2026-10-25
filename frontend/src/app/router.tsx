@@ -11,7 +11,6 @@ import { ProductsPage } from '@/features/products/ProductsPage'
 import { AnomaliesPage } from '@/features/anomalies/AnomaliesPage'
 import { RiskPage } from '@/features/risk/RiskPage'
 import { SimulatorPage } from '@/features/simulator/SimulatorPage'
-import { PipelinePage } from '@/features/pipeline/PipelinePage'
 import { MethodologyPage } from '@/features/methodology/MethodologyPage'
 import { MlLabPage } from '@/features/mllab/MlLabPage'
 
@@ -32,7 +31,7 @@ export const router = createBrowserRouter([
       { path: 'anomalies', element: <AnomaliesPage /> },
       { path: 'risk', element: <RiskPage /> },
       { path: 'simulator', element: <SimulatorPage /> },
-      { path: 'pipeline', element: <PipelinePage /> },
+      { path: 'pipeline', element: <Navigate to="/overview" replace /> },
       { path: 'methodology', element: <MethodologyPage /> },
       { path: 'ml-lab', element: <MlLabPage /> },
       { path: '*', element: <Navigate to="/data-source" replace /> },

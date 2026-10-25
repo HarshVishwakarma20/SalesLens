@@ -12,7 +12,6 @@ import {
   SlidersHorizontal,
   Undo2,
   Users,
-  Workflow,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -40,7 +39,6 @@ export const PRIMARY_NAV: NavItem[] = [
 ]
 
 export const SECONDARY_NAV: NavItem[] = [
-  { path: '/pipeline', label: 'Pipeline', icon: Workflow, description: 'The 12-stage cleaning pipeline, step by step.' },
   { path: '/methodology', label: 'Methodology', icon: BookOpen, description: 'How every metric is calculated - no black-box ML.' },
   { path: '/ml-lab', label: 'ML Lab', icon: FlaskConical, description: 'Experimental models, coming soon.', soon: true },
 ]

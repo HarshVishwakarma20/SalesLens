@@ -1,4 +1,4 @@
-﻿import { useState } from 'react'
+import { useState } from 'react'
 import ReactECharts from 'echarts-for-react'
 import { PageHeader } from '@/components/ui/page-header'
 import { InsightBanner } from '@/components/ui/insight-banner'
@@ -246,8 +246,10 @@ export function CohortsPage() {
             <h2 className="text-sm font-semibold text-foreground">Retention Curves</h2>
             <ExplainTip text="Each line tracks how a cohort's retention evolves over 12 months. Hover a line to focus it. Drag the slider to zoom into specific months." />
           </div>
-          <p className="mb-3 text-xs text-muted-foreground">First 6 cohorts · drag slider or scroll to zoom</p>
           <RetentionCurvesChart mode={mode} cohortRows={cohortRows} />
+          <div className="mt-3 flex items-start gap-2 rounded-lg border border-border/60 bg-raised/30 px-3 py-2 text-xs text-muted-foreground leading-relaxed">
+            <span><strong className="text-foreground">Chart Explanation: </strong>Tracks customer repeat purchasing or revenue decay over 12 months (M0 to M12) from initial acquisition, revealing retention half-life.</span>
+          </div>
         </div>
       </div>
 

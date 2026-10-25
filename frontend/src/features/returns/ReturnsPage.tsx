@@ -55,8 +55,14 @@ function ReturnRateBar({ tab, rows, portfolioRate }: { tab: 'product' | 'segment
       { type: 'slider', bottom: 8, height: 18, borderColor: 'var(--border)', fillerColor: 'rgba(20,184,166,0.12)', handleStyle: { color: '#14B8A6' }, textStyle: { color: 'var(--muted-foreground)', fontSize: 10 } },
       { type: 'inside' },
     ],
+    legend: {
+      data: ['Return Rate', 'Portfolio Average'],
+      textStyle: { color: 'var(--muted-foreground)', fontSize: 11 },
+      bottom: tab === 'product' ? 32 : 8,
+    },
     series: [
       {
+        name: 'Return Rate',
         type: 'bar',
         data: rows.slice(0, tab === 'product' ? 20 : rows.length).map(r => ({
           value: r.returnRate,
@@ -64,17 +70,17 @@ function ReturnRateBar({ tab, rows, portfolioRate }: { tab: 'product' | 'segment
         })),
       },
       {
+        name: 'Portfolio Average',
         type: 'line',
         data: Array(Math.min(rows.length, tab === 'product' ? 20 : rows.length)).fill(portfolioRate),
         lineStyle: { type: 'dashed', color: '#FBBF24', width: 1.5 },
         symbol: 'none',
         tooltip: { show: false },
-        name: 'Portfolio avg',
       },
     ],
-    grid: { top: 20, bottom: tab === 'product' ? 80 : 56, left: 60, right: 20 },
+    grid: { top: 20, bottom: tab === 'product' ? 95 : 65, left: 60, right: 20 },
   }
-  return <ReactECharts option={option} style={{ height: 300 }} notMerge />
+  return <ReactECharts option={option} style={{ height: 320 }} notMerge />
 }
 
 function SegmentShareBars({ segs }: { segs: ReturnRow[] }) {
@@ -101,19 +107,24 @@ function MonthlyLine({ byMonth, portfolioRate }: { byMonth: ReturnRow[]; portfol
   const option = {
     backgroundColor: 'transparent',
     tooltip: { trigger: 'axis', backgroundColor: 'var(--card)', borderColor: 'var(--border)', borderRadius: 12, textStyle: { color: 'var(--foreground)', fontSize: 12 } },
+    legend: {
+      data: ['Monthly Return Rate', 'Portfolio Average'],
+      textStyle: { color: 'var(--muted-foreground)', fontSize: 11 },
+      bottom: 28,
+    },
     xAxis: { data: byMonth.map(r => r.key), axisLabel: { color: CHART_COLOURS.axis, fontSize: 10 }, axisLine: { show: false } },
     yAxis: { axisLabel: { color: CHART_COLOURS.axis, fontSize: 10, formatter: (v: number) => `${(v * 100).toFixed(0)}%` }, axisLine: { show: false }, splitLine: { lineStyle: { color: CHART_COLOURS.grid } } },
     dataZoom: [
-      { type: 'slider', bottom: 8, height: 16, borderColor: 'var(--border)', fillerColor: 'rgba(248,113,113,0.12)', handleStyle: { color: '#F87171' }, textStyle: { color: 'var(--muted-foreground)', fontSize: 10 } },
+      { type: 'slider', bottom: 4, height: 16, borderColor: 'var(--border)', fillerColor: 'rgba(248,113,113,0.12)', handleStyle: { color: '#F87171' }, textStyle: { color: 'var(--muted-foreground)', fontSize: 10 } },
       { type: 'inside' },
     ],
     series: [
-      { type: 'line', data: byMonth.map(r => r.returnRate), smooth: true, lineStyle: { color: '#F87171', width: 2 }, symbol: 'circle', symbolSize: 5, itemStyle: { color: '#F87171' } },
-      { type: 'line', data: Array(byMonth.length).fill(portfolioRate), lineStyle: { type: 'dashed', color: '#FBBF24', width: 1.5 }, symbol: 'none' },
+      { name: 'Monthly Return Rate', type: 'line', data: byMonth.map(r => r.returnRate), smooth: true, lineStyle: { color: '#F87171', width: 2 }, symbol: 'circle', symbolSize: 5, itemStyle: { color: '#F87171' } },
+      { name: 'Portfolio Average', type: 'line', data: Array(byMonth.length).fill(portfolioRate), lineStyle: { type: 'dashed', color: '#FBBF24', width: 1.5 }, symbol: 'none' },
     ],
-    grid: { top: 20, bottom: 52, left: 60, right: 20 },
+    grid: { top: 20, bottom: 60, left: 60, right: 20 },
   }
-  return <ReactECharts option={option} style={{ height: 240 }} notMerge />
+  return <ReactECharts option={option} style={{ height: 260 }} notMerge />
 }
 
 type Tab = 'product' | 'segment' | 'month'
@@ -244,6 +255,10 @@ export function ReturnsPage() {
           <span className="ml-auto text-[10px] text-faint">Drag slider below to zoom</span>
         </div>
         <ReturnRateBar tab={tab} rows={activeRows} portfolioRate={PORTFOLIO_RATE} />
+        <div className="mt-3 rounded-lg border border-border/50 bg-raised/40 p-3 text-xs text-muted-foreground leading-relaxed">
+          <span className="font-semibold text-foreground">Graph Explanation: </span>
+          Compares return rates across dimension keys against the portfolio benchmark (dashed amber line). Red bars denote items exceeding the portfolio average, pinpointing products or segments generating disproportionate reverse logistics cost.
+        </div>
       </div>
 
       {/* DataTable */}
@@ -284,20 +299,32 @@ export function ReturnsPage() {
 
       {/* Segment share bars */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div className="sl-card p-4" tabIndex={0}>
-          <div className="flex items-center gap-2 mb-3">
-            <h2 className="text-sm font-semibold text-foreground">Share of Sales vs Returns by Segment</h2>
-            <ExplainTip text="Compares each segment's share of total sales vs total returns. If a segment's return share exceeds its sales share, it's a disproportionate leakage source." />
+        <div className="sl-card p-4 flex flex-col justify-between" tabIndex={0}>
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <h2 className="text-sm font-semibold text-foreground">Share of Sales vs Returns by Segment</h2>
+              <ExplainTip text="Compares each segment's share of total sales vs total returns. If a segment's return share exceeds its sales share, it's a disproportionate leakage source." />
+            </div>
+            <SegmentShareBars segs={bySegment} />
           </div>
-          <SegmentShareBars segs={bySegment} />
+          <div className="mt-3 rounded-lg border border-border/50 bg-raised/40 p-3 text-xs text-muted-foreground leading-relaxed">
+            <span className="font-semibold text-foreground">Graph Explanation: </span>
+            Side-by-side comparison of gross turnover contribution vs returns incurred. Segments where return share exceeds revenue share signal high-friction customer journeys.
+          </div>
         </div>
-        <div className="sl-card p-4" tabIndex={0}>
-          <div className="flex items-center gap-2 mb-1">
-            <h2 className="text-sm font-semibold text-foreground">Monthly Return Rate</h2>
-            <ExplainTip text="Tracks the return rate across all months. Spikes above the dashed average line indicate months with unusually high returns worth investigating. Drag slider to zoom." />
+        <div className="sl-card p-4 flex flex-col justify-between" tabIndex={0}>
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <h2 className="text-sm font-semibold text-foreground">Monthly Return Rate Trajectory</h2>
+              <ExplainTip text="Tracks the return rate across all months. Spikes above the dashed average line indicate months with unusually high returns worth investigating. Drag slider to zoom." />
+            </div>
+            <p className="mb-3 text-xs text-muted-foreground">Dashed = {(PORTFOLIO_RATE * 100).toFixed(2)}% portfolio average · drag slider to zoom</p>
+            <MonthlyLine byMonth={byMonth} portfolioRate={PORTFOLIO_RATE} />
           </div>
-          <p className="mb-3 text-xs text-muted-foreground">Dashed = {(PORTFOLIO_RATE * 100).toFixed(2)}% portfolio average · drag slider to zoom</p>
-          <MonthlyLine byMonth={byMonth} portfolioRate={PORTFOLIO_RATE} />
+          <div className="mt-3 rounded-lg border border-border/50 bg-raised/40 p-3 text-xs text-muted-foreground leading-relaxed">
+            <span className="font-semibold text-foreground">Graph Explanation: </span>
+            Chronological trendline of portfolio return rates. Elevated periods often align with holiday post-sales or specific product batch quality issues.
+          </div>
         </div>
       </div>
 

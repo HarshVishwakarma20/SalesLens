@@ -102,6 +102,9 @@ export function AnomaliesPage() {
 
       <ChartCard title="Daily Revenue + Z-Score" description="Red bars = spike, orange = drop (|z| > 2); dashed line = 30-day rolling mean">
         <ReactECharts option={chartOption} style={{ height: 300 }} notMerge />
+        <div className="mt-3 flex items-start gap-2 rounded-lg border border-border/60 bg-raised/30 px-3 py-2 text-xs text-muted-foreground leading-relaxed">
+          <span><strong className="text-foreground">Chart Explanation: </strong>Combines actual daily revenue (teal line) with a 30-day rolling baseline (blue dashed line). Daily deviations exceeding 2 standard deviations (|z| &gt; 2) are flagged as demand spikes (red) or revenue drops (orange).</span>
+        </div>
       </ChartCard>
 
       {/* Flagged days chips */}

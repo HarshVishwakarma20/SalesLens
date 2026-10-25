@@ -19,6 +19,8 @@ import { EChart, baseTooltip } from '@/components/charts/EChart'
 import { CHART_COLOURS } from '@/lib/colours'
 import { formatGBPCompact } from '@/lib/formatters'
 import { useDataset } from '@/hooks/useDataset'
+import { useDatasetStore } from '@/stores/dataset'
+import { UploadPendingState } from '@/components/ui/pending-state'
 import {
   HISTORICAL_DATASETS,
   computeComparison,
@@ -27,12 +29,25 @@ import { cn } from '@/lib/utils'
 
 export function ComparePage() {
   const { data: currentDataset } = useDataset()
+  const { status } = useDatasetStore()
   const [selectedBaselineId, setSelectedBaselineId] = useState<string>(
     HISTORICAL_DATASETS[0].id,
   )
   const [isLockedMode, setIsLockedMode] = useState<boolean>(true)
   const [tableSearch, setTableSearch] = useState<string>('')
   const [selectedCategory, setSelectedCategory] = useState<string>('All')
+
+  if (status === 'idle' || !currentDataset) {
+    return (
+      <div className="mx-auto flex max-w-[1440px] animate-fadeIn flex-col gap-6">
+        <PageHeader
+          title="Compare Datasets"
+          description="Side-by-side benchmarking against historical retail baselines."
+        />
+        <UploadPendingState description="Please upload an Excel or CSV transaction file on the Upload page before comparing." />
+      </div>
+    )
+  }
 
   const baseline = useMemo(() => {
     return (
@@ -66,10 +81,10 @@ export function ComparePage() {
 
     return {
       animationDuration: 700,
-      grid: { left: 72, right: 28, top: 36, bottom: 28 },
+      grid: { left: 16, right: 28, top: 48, bottom: 28, containLabel: true },
       legend: {
-        top: 0,
-        right: 10,
+        top: 6,
+        right: 12,
         textStyle: { color: CHART_COLOURS.axis, fontSize: 11 },
         data: ['Previous Dataset', 'Current Dataset'],
       },
@@ -103,12 +118,21 @@ export function ComparePage() {
       },
       yAxis: {
         type: 'value',
+        name: 'Gross Sales (£)',
+        nameTextStyle: {
+          color: CHART_COLOURS.axis,
+          fontSize: 10,
+          fontFamily: 'JetBrains Mono, monospace',
+          padding: [0, 0, 6, 0],
+          align: 'left',
+        },
         splitNumber: 4,
         splitLine: { lineStyle: { color: CHART_COLOURS.grid, type: 'dashed' } },
         axisLabel: {
           color: CHART_COLOURS.axis,
           fontSize: 10,
           fontFamily: 'JetBrains Mono, monospace',
+          margin: 12,
           hideOverlap: true,
           formatter: (v: number) => formatGBPCompact(v),
         },
@@ -166,10 +190,10 @@ export function ComparePage() {
 
     return {
       animationDuration: 700,
-      grid: { left: 56, right: 24, top: 36, bottom: 60 },
+      grid: { left: 16, right: 20, top: 48, bottom: 32, containLabel: true },
       legend: {
-        top: 0,
-        right: 10,
+        top: 6,
+        right: 12,
         textStyle: { color: CHART_COLOURS.axis, fontSize: 11 },
         data: ['Previous Run', 'Current Run'],
       },
@@ -185,14 +209,22 @@ export function ComparePage() {
         axisLine: { lineStyle: { color: '#1B3A45' } },
         axisLabel: {
           color: CHART_COLOURS.axis,
-          fontSize: 9,
+          fontSize: 11,
           interval: 0,
-          rotate: 30,
-          hideOverlap: true,
+          rotate: 0,
+          margin: 10,
         },
       },
       yAxis: {
         type: 'value',
+        name: 'Customer Count',
+        nameTextStyle: {
+          color: CHART_COLOURS.axis,
+          fontSize: 10,
+          fontFamily: 'JetBrains Mono, monospace',
+          padding: [0, 0, 6, 0],
+          align: 'left',
+        },
         splitNumber: 4,
         minInterval: 1,
         splitLine: { lineStyle: { color: CHART_COLOURS.grid, type: 'dashed' } },
@@ -200,6 +232,7 @@ export function ComparePage() {
           color: CHART_COLOURS.axis,
           fontSize: 10,
           fontFamily: 'JetBrains Mono, monospace',
+          margin: 12,
           hideOverlap: true,
           formatter: (v: number) =>
             v >= 1000 ? `${(v / 1000).toFixed(1).replace(/\.0$/, '')}k` : String(Math.round(v)),
@@ -211,7 +244,7 @@ export function ComparePage() {
           type: 'bar',
           data: prevCounts,
           barGap: '20%',
-          barMaxWidth: 28,
+          barMaxWidth: 30,
           itemStyle: {
             color: '#475569',
             borderRadius: [4, 4, 0, 0],
@@ -221,7 +254,7 @@ export function ComparePage() {
           name: 'Current Run',
           type: 'bar',
           data: curCounts,
-          barMaxWidth: 28,
+          barMaxWidth: 30,
           itemStyle: {
             color: '#0EA5E9',
             borderRadius: [4, 4, 0, 0],
@@ -260,6 +293,12 @@ export function ComparePage() {
           </div>
         }
       />
+
+      {/* Page explanation */}
+      <div className="rounded-xl border border-accent/20 bg-accent/5 px-4 py-3 text-xs text-muted-foreground leading-relaxed">
+        <span className="font-semibold text-accent">How to read this page: </span>
+        Evaluate business health and customer lifecycle changes between your baseline reference and current active dataset. The headline scorecard highlights key variances (green for positive, red for negative), while the dual-series graphs show trajectory divergence across months and customer RFM segment migration.
+      </div>
 
       {/* Feature Locked Notice Banner */}
       <div
@@ -549,37 +588,75 @@ export function ComparePage() {
       </div>
 
       {/* Visual Comparison Charts */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 items-stretch">
         {/* Monthly Sales Trajectory Comparison */}
-        <div>
-          <Card>
+        <div className="flex flex-col">
+          <Card className="flex flex-col h-full p-6">
             <CardHeader
               title="Monthly Sales Growth Trajectory"
-              description="Gross sales comparison by sequence month"
-              actions={<Badge tone="neutral">Dual Series</Badge>}
+              description="Sequential month gross sales comparison between baseline reference and current dataset"
+              actions={<Badge tone="neutral">Dual Series Line</Badge>}
             />
-            <div className="h-80 w-full mt-2">
+            <div className="h-[360px] w-full my-3">
               <EChart
                 option={monthlyChartOption}
+                className="h-full w-full"
                 ariaLabel="Monthly Sales Growth Trajectory Comparison Chart"
               />
+            </div>
+            {/* Graph Explanation & Legend Details */}
+            <div className="mt-auto rounded-xl border border-border/70 bg-raised/40 p-3.5 text-xs text-muted-foreground leading-relaxed">
+              <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                <span className="flex items-center gap-1 font-semibold text-foreground">
+                  <Sparkles className="size-3.5 text-accent" />
+                  Chart Guide:
+                </span>
+                <span className="inline-flex items-center gap-1 rounded bg-raised px-2 py-0.5 text-[11px] font-mono text-slate-400 border border-slate-700/50">
+                  <span className="inline-block w-3 h-0.5 border-t-2 border-dashed border-slate-400"></span> Previous Baseline
+                </span>
+                <span className="inline-flex items-center gap-1 rounded bg-accent/10 px-2 py-0.5 text-[11px] font-mono text-accent border border-accent/30">
+                  <span className="inline-block w-3 h-0.5 bg-accent"></span> Current Active
+                </span>
+              </div>
+              <p>
+                Visualizes sequential monthly gross revenue in GBP. Compare seasonal trading patterns, quarter-end acceleration, and peak holiday volume to confirm whether current sales momentum exceeds historical benchmarks.
+              </p>
             </div>
           </Card>
         </div>
 
         {/* Customer Segment Migration Comparison */}
-        <div>
-          <Card>
+        <div className="flex flex-col">
+          <Card className="flex flex-col h-full p-6">
             <CardHeader
               title="Customer Segment Migration"
-              description="Customer count shift across lifecycle segments"
-              actions={<Badge tone="neutral">RFM Shift</Badge>}
+              description="Customer population shifts across 6 core RFM lifecycle segments"
+              actions={<Badge tone="neutral">Grouped Bar</Badge>}
             />
-            <div className="h-80 w-full mt-2">
+            <div className="h-[360px] w-full my-3">
               <EChart
                 option={segmentChartOption}
+                className="h-full w-full"
                 ariaLabel="Customer Segment Migration Comparison Chart"
               />
+            </div>
+            {/* Graph Explanation & Legend Details */}
+            <div className="mt-auto rounded-xl border border-border/70 bg-raised/40 p-3.5 text-xs text-muted-foreground leading-relaxed">
+              <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                <span className="flex items-center gap-1 font-semibold text-foreground">
+                  <Sparkles className="size-3.5 text-accent" />
+                  Chart Guide:
+                </span>
+                <span className="inline-flex items-center gap-1 rounded bg-raised px-2 py-0.5 text-[11px] font-mono text-slate-400 border border-slate-700/50">
+                  <span className="inline-block size-2 rounded-sm bg-[#475569]"></span> Previous Run
+                </span>
+                <span className="inline-flex items-center gap-1 rounded bg-sky-500/10 px-2 py-0.5 text-[11px] font-mono text-sky-400 border border-sky-500/30">
+                  <span className="inline-block size-2 rounded-sm bg-[#0EA5E9]"></span> Current Run
+                </span>
+              </div>
+              <p>
+                Compares customer counts across Champions, Loyal, Promising, New, At-Risk, and Lost tiers. Look for healthy migrations (expansion in Champions/Loyals) or churn warning signs (growth in At-Risk and Lost buckets).
+              </p>
             </div>
           </Card>
         </div>

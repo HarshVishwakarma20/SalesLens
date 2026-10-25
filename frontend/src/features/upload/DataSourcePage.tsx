@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { FileCheck2, FileSpreadsheet, Sparkles, Upload } from 'lucide-react'
 import type { UploadMode } from '@/lib/types'
 import { UploadCard } from './UploadCard'
-import { DemoCard } from './DemoCard'
 import { ValidationPanel } from './ValidationPanel'
 import { RecentDatasets } from './RecentDatasets'
 
@@ -33,7 +32,7 @@ export function DataSourcePage() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         <UploadCard
           icon={FileCheck2}
           dropIcon={Upload}
@@ -54,14 +53,13 @@ export function DataSourcePage() {
           badge="Cleans automatically"
           badgeTone="info"
           title="Upload raw data"
-          description="Accepts original UCI retail formats. Runs 12-stage cleaning pipeline."
-          dropLabel="Drag & drop raw UCI file"
-          dropHint="original UCI .xlsx or .csv"
-          footer="Cleaning can take several minutes."
+          description="Accepts original UCI retail formats. Runs automated cleaning pipeline."
+          dropLabel="Drag & drop raw retail file"
+          dropHint="retail .xlsx or .csv"
+          footer="Standardizes columns, pairs returns, and cleans data."
           accept={SPREADSHEET_ACCEPT}
           onFile={handleFile('raw')}
         />
-        <DemoCard />
       </div>
 
       {upload ? <ValidationPanel key={`${upload.file.name}-${upload.mode}`} file={upload.file} mode={upload.mode} /> : null}

@@ -56,7 +56,7 @@ function SegmentFilter() {
   )
 }
 
-function PdfButton({ dataset }: { dataset?: Dataset }) {
+function PdfButton({ dataset }: { dataset?: Dataset | null }) {
   const handlePdf = () => {
     const toastId = toast.loading('Generating PDF Report...')
     generatePdfReport(dataset)

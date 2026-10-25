@@ -215,12 +215,16 @@ export function SegmentsPage() {
       <div className="grid grid-cols-1 gap-6">
         <div className="sl-card p-4" tabIndex={0}>
           <div className="flex items-center gap-2 mb-1">
-            <h2 className="text-sm font-semibold text-foreground">RFM Map</h2>
+            <h2 className="text-sm font-semibold text-foreground">RFM Customer Clustering Map</h2>
             <ExplainTip text="Each dot is a customer. X-axis = days since last purchase (lower = more recent). Y-axis = number of orders. Bubble size = monetary value. Drag slider to zoom." />
             <span className="ml-auto text-[10px] text-faint">Drag slider to zoom</span>
           </div>
-          <p className="mb-3 text-xs text-muted-foreground">Recency vs Frequency, bubble = Monetary value</p>
+          <p className="mb-3 text-xs text-muted-foreground">Recency vs Frequency, bubble size = Total Monetary Spend (£)</p>
           <ScatterChart visibleSegs={visibleSegs} rfmScatter={rfmScatter} />
+          <div className="mt-3 rounded-lg border border-border/50 bg-raised/40 p-3 text-xs text-muted-foreground leading-relaxed">
+            <span className="font-semibold text-foreground">Graph Explanation: </span>
+            This multi-dimensional scatter visualises customer value distribution. High-value Champions cluster in the top-left (low recency days, high order frequency), while at-risk and lost customers drift to the far right. Bubble radius scales proportionally with cumulative customer monetary value.
+          </div>
         </div>
       </div>
 

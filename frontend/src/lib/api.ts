@@ -29,6 +29,37 @@ async function get<T>(path: string, params?: Record<string, string | number | bo
   return res.json() as Promise<T>
 }
 
+async function post<T>(path: string, body?: unknown): Promise<T> {
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000'
+  const url = new URL(`${BASE}${path}`, origin)
+  const res = await fetch(url.toString(), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+  })
+  if (!res.ok) {
+    let detail = `${res.status} ${res.statusText}`
+    try { const j = await res.json(); detail = j.detail ?? detail } catch { /* ignore */ }
+    throw new Error(detail)
+  }
+  return res.json() as Promise<T>
+}
+
+async function del<T>(path: string): Promise<T> {
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000'
+  const url = new URL(`${BASE}${path}`, origin)
+  const res = await fetch(url.toString(), {
+    method: 'DELETE',
+    headers: { Accept: 'application/json' },
+  })
+  if (!res.ok) {
+    let detail = `${res.status} ${res.statusText}`
+    try { const j = await res.json(); detail = j.detail ?? detail } catch { /* ignore */ }
+    throw new Error(detail)
+  }
+  return res.json() as Promise<T>
+}
+
 // ─── Response types (matching actual backend JSON) ────────────────────────────
 
 export interface BackendStatus {
@@ -370,6 +401,10 @@ export const api = {
   cleanedFileUrl: () => `${BASE}/datasets/cleaned-file`,
 
   getReportData: () => get<BackendReportData>('/datasets/report-data'),
+
+  deleteDataset: (id: string | number) => del<{ status: string; id: string; deleted: boolean }>(`/datasets/${id}`),
+
+  clearDatasets: () => post<{ status: string; message: string; deleted_count: number; files_purged: number }>('/datasets/clear'),
 }
 
 

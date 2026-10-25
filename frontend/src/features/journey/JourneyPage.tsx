@@ -147,19 +147,31 @@ export function JourneyPage() {
         <div className="sl-card p-4">
           <h2 className="mb-3 text-sm font-semibold text-foreground">Orders per Customer</h2>
           <HistBar data={ordersHist} xKey="bucket" yKey="count" color="#14B8A6" xLabel="Order count" />
+          <div className="mt-2 text-[11px] text-muted-foreground">
+            <strong className="text-foreground">Explanation: </strong>Frequency distribution showing how many repeat orders customers place before lapsing.
+          </div>
         </div>
         <div className="sl-card p-4">
           <h2 className="mb-3 text-sm font-semibold text-foreground">Purchase Gap Distribution (days)</h2>
           <HistBar data={gapHist} xKey="bucket" yKey="count" color="#38BDF8" xLabel="Days between orders" />
+          <div className="mt-2 text-[11px] text-muted-foreground">
+            <strong className="text-foreground">Explanation: </strong>Days elapsed between consecutive purchases; peaks indicate normal reorder cadence.
+          </div>
         </div>
         <div className="sl-card p-4">
           <h2 className="mb-1 text-sm font-semibold text-foreground">Revenue Concentration by Customer Tier</h2>
           <p className="mb-2 text-xs text-muted-foreground">Top 5% of customers drive 35% of revenue — compare customer share vs revenue share by tier</p>
           <CustomerValueTiers />
+          <div className="mt-2 text-[11px] text-muted-foreground">
+            <strong className="text-foreground">Explanation: </strong>Pareto distribution comparing population size against revenue contribution across tiers.
+          </div>
         </div>
         <div className="sl-card p-4">
           <h2 className="mb-3 text-sm font-semibold text-foreground">Customers Acquired per Month</h2>
           <HistBar data={acquiredPerMonth} xKey="month" yKey="acquired" color="#A78BFA" xLabel="Month" />
+          <div className="mt-2 text-[11px] text-muted-foreground">
+            <strong className="text-foreground">Explanation: </strong>First-time buyer acquisition volume mapped month-by-month over the dataset lifecycle.
+          </div>
         </div>
       </div>
 

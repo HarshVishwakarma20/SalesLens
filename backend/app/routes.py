@@ -9,6 +9,7 @@ Prefix /api/v1 is applied in main.py.
 from __future__ import annotations
 
 import io
+import logging
 import math
 from datetime import datetime
 from typing import Annotated, Literal
@@ -30,6 +31,7 @@ from app.services import (
 )
 from app.utils import paginate, sanitize
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
 _s = _state_module.state
 
@@ -207,6 +209,19 @@ def list_available_datasets() -> list[dict]:
             with factory() as db:
                 stored = db_list_datasets(db)
                 if stored:
+                    # If current in-memory dataset is ready but not yet in stored list, prepend it as primary
+                    if _s.dataset_name and not any(str(d.get("id")) == str(_s.dataset_id) for d in stored):
+                        for s in stored:
+                            s["primary"] = False
+                        current_item = {
+                            "id": str(_s.dataset_id or "current"),
+                            "name": _s.dataset_name,
+                            "uploaded": "Current session",
+                            "rows": int(len(_s.cleaned_df)) if _s.cleaned_df is not None else 0,
+                            "status": "Processed" if _s.is_ready() else "Processing",
+                            "primary": True,
+                        }
+                        return [current_item, *stored]
                     return stored
         except Exception:
             pass
@@ -223,6 +238,73 @@ def list_available_datasets() -> list[dict]:
             }
         ]
     return []
+
+
+@router.delete("/datasets/{dataset_id}", tags=["Dataset"])
+def remove_dataset(dataset_id: str) -> dict:
+    """Delete a specific dataset from PostgreSQL, purge physical files from storage, and reset memory if active."""
+    from app.database import get_session_factory
+    from app.db_service import delete_dataset as db_delete_dataset
+    from app.config import STORAGE_DIR
+
+    deleted_from_db = False
+    factory = get_session_factory()
+    if factory is not None:
+        try:
+            with factory() as db:
+                if dataset_id.isdigit():
+                    deleted_from_db = db_delete_dataset(db, int(dataset_id))
+        except Exception as e:
+            logger.error(f"Error deleting dataset {dataset_id} from DB: {e}")
+
+    # Remove any physical files matching dataset_id or active dataset_name from storage
+    if STORAGE_DIR.exists():
+        search_terms = [dataset_id]
+        if _s.dataset_name:
+            search_terms.append(_s.dataset_name.rsplit(".", 1)[0])
+        for term in search_terms:
+            for f in list(STORAGE_DIR.glob(f"*{term}*")):
+                try:
+                    if f.is_file():
+                        f.unlink()
+                except Exception:
+                    pass
+
+    # If the active in-memory dataset is this one, reset state
+    if str(_s.dataset_id) == str(dataset_id) or _s.dataset_name == dataset_id:
+        _s.reset()
+
+    return {"status": "ok", "deleted": True, "id": dataset_id, "from_db": deleted_from_db}
+
+
+@router.post("/datasets/clear", tags=["Dataset"])
+@router.delete("/datasets", tags=["Dataset"])
+def clear_all_datasets_endpoint() -> dict:
+    """Clear all datasets from the database, purge temporary storage files, and reset active state."""
+    from app.database import get_session_factory
+    from app.db_service import clear_all_datasets as db_clear_all_datasets, cleanup_storage_files
+
+    deleted_db_count = 0
+    factory = get_session_factory()
+    if factory is not None:
+        try:
+            with factory() as db:
+                deleted_db_count = db_clear_all_datasets(db)
+        except Exception as e:
+            logger.error(f"Error clearing datasets from DB: {e}")
+
+    # Clean up physical files in backend/storage to free unnecessary disk space
+    freed_files = cleanup_storage_files()
+
+    # Reset in-memory state
+    _s.reset()
+
+    return {
+        "status": "ok",
+        "message": f"Successfully cleared {deleted_db_count} dataset(s) and purged {freed_files} cached storage file(s).",
+        "deleted_count": deleted_db_count,
+        "files_purged": freed_files,
+    }
 
 
 
@@ -802,6 +884,15 @@ EXPORT_DISPLAY_NAMES = {
 @router.get("/datasets/export/{table}", tags=["Export"])
 def export_csv(table: str) -> StreamingResponse:
     clean_table = table.lower().replace(".csv", "")
+    if clean_table not in EXPORT_TABLES and clean_table not in (
+        "journey",
+        "customer_journey",
+        "rfm",
+        "rfm_segments",
+        "risk",
+        "customer_risk",
+    ):
+        raise HTTPException(status_code=404, detail=f"Table '{table}' not found for export.")
     display_name = EXPORT_DISPLAY_NAMES.get(clean_table, clean_table)
 
     # 1. Try in-memory state
@@ -1156,55 +1247,7 @@ def get_dataset_details(dataset_id: str) -> dict:
         except Exception:
             pass
 
-    # 3. Fallback to standard demo dataset (never 404 on uci-demo)
-    demo_ov = {
-        "kpis": {
-            "activeCustomers": 3362,
-            "repeatRate": 65.27,
-            "churnRateIndicative": 88.52,
-            "revRetention": 29.79,
-            "netRevenue": 8265476.93,
-            "grossSales": 8736000.0,
-            "totalReturns": 470523.07,
-            "totalCustomers": 4334,
-            "returnRate": 5.12,
-        },
-        "monthlyTrends": [
-            {"month": "2010-12", "sales": 748957.02, "returns": 45000.0, "returnRate": 5.67},
-            {"month": "2011-01", "sales": 560000.20, "returns": 32000.0, "returnRate": 5.40},
-            {"month": "2011-02", "sales": 498061.44, "returns": 28000.0, "returnRate": 5.32},
-            {"month": "2011-03", "sales": 683267.73, "returns": 39000.0, "returnRate": 5.39},
-            {"month": "2011-04", "sales": 493202.21, "returns": 27000.0, "returnRate": 5.19},
-            {"month": "2011-05", "sales": 723333.51, "returns": 41000.0, "returnRate": 5.36},
-            {"month": "2011-06", "sales": 691122.95, "returns": 38000.0, "returnRate": 5.21},
-            {"month": "2011-07", "sales": 681300.11, "returns": 37000.0, "returnRate": 5.15},
-            {"month": "2011-08", "sales": 682680.12, "returns": 36000.0, "returnRate": 5.01},
-            {"month": "2011-09", "sales": 1019687.62, "returns": 52000.0, "returnRate": 4.85},
-            {"month": "2011-10", "sales": 1070704.61, "returns": 56000.0, "returnRate": 4.96},
-            {"month": "2011-11", "sales": 1461756.24, "returns": 72000.0, "returnRate": 4.69},
-            {"month": "2011-12", "sales": 433853.88, "returns": 24000.0, "returnRate": 5.24},
-        ],
-        "segmentDistribution": [
-            {"segment": "Champion", "count": 897, "pct": 20.7},
-            {"segment": "Loyal", "count": 390, "pct": 9.0},
-            {"segment": "Promising", "count": 1078, "pct": 24.8},
-            {"segment": "New", "count": 234, "pct": 5.4},
-            {"segment": "At-Risk", "count": 763, "pct": 17.6},
-            {"segment": "Lost", "count": 972, "pct": 22.4},
-        ],
-        "dailySales": [
-            {"date": "2010-12-01", "sales": 58635.43, "flagged": True},
-            {"date": "2010-12-02", "sales": 46207.28, "flagged": False},
-        ],
-        "highRiskCustomers": [
-            {"customerId": 17850, "riskScore": 92.4, "riskBand": "Critical", "mainReason": "Recency decayed > 90 days"},
-            {"customerId": 12431, "riskScore": 86.1, "riskBand": "High", "mainReason": "Return rate spiked > 40%"},
-        ],
-    }
-    return sanitize(_build_dataset_response(
-        ds_id="uci-demo",
-        name="UCI Online Retail - Demo",
-        rows=399659,
-        ov=demo_ov,
-    ))
+    # 3. No dataset loaded
+    raise _http_error(404, "No active dataset found. Please upload an Excel or CSV file first.")
+
 

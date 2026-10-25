@@ -138,11 +138,17 @@ export function ProductsPage() {
         <div className="sl-card p-4">
           <h2 className="mb-3 text-sm font-semibold text-foreground">Top 10 Products — Net vs Returned Value</h2>
           <TopProductsChart products={products} />
+          <div className="mt-3 flex items-start gap-2 rounded-lg border border-border/60 bg-raised/30 px-3 py-2 text-xs text-muted-foreground leading-relaxed">
+            <span><strong className="text-foreground">Chart Explanation: </strong>Ranks top revenue-generating SKUs, comparing retained Net Revenue (teal) with refunded Return Value (red) per item.</span>
+          </div>
         </div>
         <div className="sl-card p-4">
           <h2 className="mb-1 text-sm font-semibold text-foreground">Return Rate vs Attach Rate</h2>
           <p className="mb-3 text-xs text-muted-foreground">Red = return rate above portfolio avg ({(portfolioAvg * 100).toFixed(2)}%)</p>
           <QuadrantChart products={products} />
+          <div className="mt-3 flex items-start gap-2 rounded-lg border border-border/60 bg-raised/30 px-3 py-2 text-xs text-muted-foreground leading-relaxed">
+            <span><strong className="text-foreground">Chart Explanation: </strong>Scatter quadrant evaluating catalog performance. High attach-rate items with elevated return rates (red dots) indicate potential quality or fit issues.</span>
+          </div>
         </div>
       </div>
 

@@ -215,10 +215,16 @@ export function RiskPage() {
           <h2 className="mb-1 text-sm font-semibold text-foreground">Risk Score Distribution</h2>
           <p className="mb-3 text-xs text-muted-foreground">Colour bands: <span style={{ color: RISK_COLOURS.Low }}>Low</span> / <span style={{ color: RISK_COLOURS.Medium }}>Medium</span> / <span style={{ color: RISK_COLOURS.High }}>High</span> / <span style={{ color: RISK_COLOURS.Critical }}>Critical</span></p>
           <RiskHistogram scores={reScored.map(r => r.score)} />
+          <div className="mt-2 text-[11px] text-muted-foreground">
+            <strong className="text-foreground">Explanation: </strong>Population count grouped by composite churn risk score (0–100), divided across Low, Medium, High, and Critical thresholds.
+          </div>
         </div>
         <div className="sl-card p-4">
           <h2 className="mb-1 text-sm font-semibold text-foreground">Avg Risk by Segment</h2>
           <SegmentRiskBars rows={reScored} />
+          <div className="mt-2 text-[11px] text-muted-foreground">
+            <strong className="text-foreground">Explanation: </strong>Average composite churn risk score across each RFM segment, illustrating vulnerability by lifecycle tier.
+          </div>
         </div>
       </div>
 

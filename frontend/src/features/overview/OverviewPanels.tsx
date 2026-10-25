@@ -81,6 +81,10 @@ export function MonthlySalesPanel({ data }: { data: Dataset['monthly'] }) {
           }
         />
         <MonthlySalesChart data={data} />
+        <div className="mt-3 flex items-start gap-2 rounded-lg border border-border/60 bg-raised/30 px-3 py-2 text-xs text-muted-foreground leading-relaxed">
+          <InfoTip text="Bars show monthly gross sales and returns in thousands (£k); the cyan line tracks the monthly return rate percentage." />
+          <span><strong className="text-foreground">Chart Explanation: </strong>Bars compare monthly sales volume against inventory returns (£k); the teal line tracks return leakage rate (%) against sales velocity.</span>
+        </div>
       </Card>
     </>
   )
@@ -119,6 +123,9 @@ export function SegmentMixPanel({ segments, total }: { segments: Dataset['segmen
           </li>
         ))}
       </ul>
+      <div className="mt-3 flex items-start gap-2 rounded-lg border border-border/60 bg-raised/30 px-3 py-2 text-xs text-muted-foreground leading-relaxed">
+        <span><strong className="text-foreground">Chart Explanation: </strong>Customer distribution across 6 RFM lifecycle stages. Click slices or table rows to filter the global dashboard.</span>
+      </div>
     </Card>
   )
 }
@@ -138,6 +145,9 @@ export function LeakagePanel({ leakage }: { leakage: Dataset['leakage'] }) {
         }
       />
       <LeakageWaterfall {...leakage} />
+      <div className="mt-3 flex items-start gap-2 rounded-lg border border-border/60 bg-raised/30 px-3 py-2 text-xs text-muted-foreground leading-relaxed">
+        <span><strong className="text-foreground">Chart Explanation: </strong>Waterfall accounting reconciling Gross Sales down to Net Captured Revenue after subtracting refund returns.</span>
+      </div>
     </Card>
   )
 }

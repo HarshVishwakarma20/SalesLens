@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { useFiltersStore } from '@/stores/filters'
 import { useDatasetStore } from '@/stores/dataset'
-import { DEMO_DATASET } from '@/lib/mock-data'
+import type { Dataset, DatasetSummary } from '@/lib/types'
 
 export function useDataset() {
   const datasetId = useFiltersStore((s) => s.datasetId)
@@ -10,7 +10,10 @@ export function useDataset() {
 
   return useQuery({
     queryKey: ['dataset', datasetId],
-    queryFn: async () => {
+    queryFn: async (): Promise<Dataset | null> => {
+      if (!datasetId || datasetStatus === 'idle') {
+        return null
+      }
       try {
         const res = await api.getDataset(datasetId)
         if (res && res.kpis && res.kpis.length > 0) {
@@ -21,41 +24,31 @@ export function useDataset() {
           return res
         }
       } catch {
-        // Only fall back to demo data when no upload has been attempted yet.
-        // If an upload is in progress or has completed, propagate the error
-        // rather than silently masking it with stale mock data.
         const status = useDatasetStore.getState().status
         if (status !== 'idle') throw new Error('Backend not ready — please wait for processing to complete.')
       }
-      return DEMO_DATASET
+      return null
     },
-    // Never treat data as fresh — always re-validate when the queryKey changes
-    // or when the component remounts after a new upload.
     staleTime: 0,
     refetchOnMount: 'always',
-    // Retry briefly on failure, but don't hammer the backend during processing.
-    retry: 2,
-    retryDelay: 1500,
-    // Only run the query when we are not actively uploading/processing.
-    enabled: datasetStatus !== 'uploading' && datasetStatus !== 'processing',
+    retry: 1,
+    enabled: Boolean(datasetId) && datasetStatus === 'ready',
   })
 }
 
 export function useRecentDatasets() {
   return useQuery({
     queryKey: ['datasets'],
-    queryFn: async () => {
+    queryFn: async (): Promise<DatasetSummary[]> => {
       try {
         const list = await api.listDatasets()
-        if (list && list.length > 0) {
+        if (list && Array.isArray(list)) {
           return list
         }
       } catch {
-        // Fallback
+        // Return empty list on failure
       }
-      return [
-        { id: 'uci-demo', name: 'UCI Online Retail - Demo (Standard)', uploaded: 'Today, 09:41 AM', rows: 399659, status: 'Processed' as const, primary: true },
-      ]
+      return []
     },
     staleTime: 0,
   })

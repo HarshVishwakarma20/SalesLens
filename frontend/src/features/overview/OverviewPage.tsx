@@ -40,7 +40,7 @@ export function OverviewPage() {
     )
   }
 
-  if (status === 'idle' && !data) {
+  if (status === 'idle' || !data) {
     return (
       <div className="mx-auto flex max-w-[1440px] animate-fadeIn flex-col gap-6">
         <PageHeader
