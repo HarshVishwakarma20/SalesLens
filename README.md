@@ -94,7 +94,7 @@ Raw transaction logs pass through a 7-stage deterministic pipeline in `backend/a
 - **Returns Intelligence**: Calculates return rates across SKUs, segments, and months, flagging items exceeding portfolio averages by >1.0 standard deviation.
 - **Demand Anomaly Engine**: Computes 30-day rolling Gaussian z-scores (`|z| > 2.0`) to detect volume spikes or revenue dips, attributing affected buyers and SKUs.
 - **Composite Churn Risk**: Blends RFM decay, customer return propensity, purchase interval acceleration, and volatility exposure into a 0–100 risk score.
-- **Dataset Comparison**: Benchmarks two datasets side-by-side with automatic scale normalization, growth trajectory tracking, and segment migration analysis.
+- **Dataset Comparison**: Benchmarks two datasets side-by-side with automatic scale normalization, growth trajectory tracking, and segment migration analysis for the two datasets.
 
 ---
 
