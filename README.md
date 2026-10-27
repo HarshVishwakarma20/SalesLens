@@ -2,7 +2,9 @@
 
 SalesLens is an end-to-end customer intelligence and retail revenue diagnostics platform. It transforms raw transaction logs into executive dashboards, RFM segmentations, cohort retention matrices, returns leakage diagnostics, demand anomaly alerts, churn risk indices, and multi-page board-level PDF reports.
 
+
 ---
+
 
 ## 1. Executive Summary
 
