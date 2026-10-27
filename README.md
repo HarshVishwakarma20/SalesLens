@@ -124,7 +124,9 @@ The client-side PDF generator (`frontend/src/lib/pdf-report.ts`) produces an exe
 - **Page 4: Product Catalog & Return Leakage**: Top revenue SKUs, high-return catalog lines, and supplier QA mitigation guidelines.
 - **Page 5: Demand Anomalies & Action Roadmap**: Timeline of significant daily shocks and a phased 90-day strategic implementation plan.
 
+
 ---
+
 
 ## 8. REST API Summary
 
