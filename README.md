@@ -3,7 +3,9 @@
 
 Acuity is an end-to-end customer intelligence and retail revenue diagnostics platform. It transforms raw transaction logs into executive dashboards, RFM segmentations, cohort retention matrices, returns leakage diagnostics, demand anomaly alerts, churn risk indices, and multi-page board-level PDF reports.
 
+
 ---
+
 
 ## 1. Executive Summary
 
@@ -95,7 +97,7 @@ Raw transaction logs pass through a 7-stage deterministic pipeline in `backend/a
 - **Returns Intelligence**: Calculates return rates across SKUs, segments, and months, flagging items exceeding portfolio averages by >1.0 standard deviation.
 - **Demand Anomaly Engine**: Computes 30-day rolling Gaussian z-scores (`|z| > 2.0`) to detect volume spikes or revenue dips, attributing affected buyers and SKUs.
 - **Composite Churn Risk**: Blends RFM decay, customer return propensity, purchase interval acceleration, and volatility exposure into a 0–100 risk score.
-- **Dataset Comparison**: Benchmarks two datasets side-by-side with automatic scale normalization, growth trajectory tracking, and segment migration analysis.
+- **Dataset Comparison**: Benchmarks two datasets side-by-side with automatic scale normalization, growth trajectory tracking, and segment migration analysis for the two datasets.
 
 ---
 
@@ -123,7 +125,9 @@ The client-side PDF generator (`frontend/src/lib/pdf-report.ts`) produces an exe
 - **Page 4: Product Catalog & Return Leakage**: Top revenue SKUs, high-return catalog lines, and supplier QA mitigation guidelines.
 - **Page 5: Demand Anomalies & Action Roadmap**: Timeline of significant daily shocks and a phased 90-day strategic implementation plan.
 
+
 ---
+
 
 ## 8. REST API Summary
 
@@ -180,6 +184,7 @@ To verify the production build:
 cd frontend
 npm run build
 ```
+
 
 ---
 
