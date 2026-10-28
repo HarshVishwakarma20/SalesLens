@@ -1,5 +1,5 @@
 """
-Seed sample retail analytics data into SalesLens PostgreSQL database.
+Seed sample retail analytics data into Acuity PostgreSQL database.
 Generates realistic multi-month retail transactions and runs the full analytics pipeline.
 """
 from __future__ import annotations
@@ -80,7 +80,7 @@ def generate_seed_dataframe() -> pd.DataFrame:
 
 def main():
     print("=" * 60)
-    print("SalesLens — Seed PostgreSQL Database")
+    print("Acuity — Seed PostgreSQL Database")
     print("=" * 60)
 
     status = check_connection()

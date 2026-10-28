@@ -1,5 +1,5 @@
 /**
- * SalesLens API client
+ * Acuity API client
  * All requests go to VITE_API_URL (default: http://localhost:8000/api/v1)
  *
  * Response field naming: the backend uses camelCase for most fields.

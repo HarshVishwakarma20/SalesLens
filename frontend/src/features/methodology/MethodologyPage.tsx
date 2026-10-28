@@ -122,7 +122,7 @@ export function MethodologyPage() {
 
       {/* Accordion cards */}
       <div className="flex-1 space-y-3">
-        <PageHeader title="Methodology" description="How every metric in SalesLens is calculated." />
+        <PageHeader title="Methodology" description="How every metric in Acuity is calculated." />
 
         {visible.map(card => (
           <div key={card.id} className="sl-card overflow-hidden">

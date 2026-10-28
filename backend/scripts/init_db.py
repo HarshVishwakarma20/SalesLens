@@ -1,5 +1,5 @@
 """
-Initialize the SalesLens PostgreSQL database.
+Initialize the Acuity PostgreSQL database.
 Creates the database if missing and generates all relational tables.
 """
 from __future__ import annotations
@@ -21,7 +21,7 @@ import app.models  # Registers all ORM models with Base.metadata
 
 
 def ensure_database_exists():
-    """Connect to default 'postgres' database and create 'saleslens_db' if it does not exist."""
+    """Connect to default 'postgres' database and create 'acuity_db' if it does not exist."""
     print(f"Connecting to PostgreSQL server at {DB_HOST}:{DB_PORT} as user '{DB_USER}'...")
     try:
         conn = psycopg2.connect(
@@ -53,14 +53,14 @@ def ensure_database_exists():
         print("\nPlease ensure your credentials in .env are correct:")
         print("  DB_HOST=localhost")
         print("  DB_PORT=5432")
-        print("  DB_NAME=saleslens_db")
+        print("  DB_NAME=acuity_db")
         print(f"  DB_USER={DB_USER}")
         print("  DB_PASSWORD=<your_actual_password>")
         return False
 
 
 def create_schema():
-    """Create all tables in saleslens_db using SQLAlchemy metadata."""
+    """Create all tables in acuity_db using SQLAlchemy metadata."""
     print(f"\nCreating tables in database '{DB_NAME}'...")
     engine = get_engine()
     if engine is None:
@@ -80,7 +80,7 @@ def create_schema():
 
 def main():
     print("=" * 60)
-    print("SalesLens — PostgreSQL Database Setup")
+    print("Acuity — PostgreSQL Database Setup")
     print("=" * 60)
     if not ensure_database_exists():
         sys.exit(1)

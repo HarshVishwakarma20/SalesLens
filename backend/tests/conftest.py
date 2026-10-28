@@ -1,5 +1,5 @@
 """
-Shared pytest fixtures for SalesLens backend tests.
+Shared pytest fixtures for Acuity backend tests.
 
 Two minimal DataFrames are created here:
   raw_df    — mimics a UCI Online Retail file (all 8 required columns)

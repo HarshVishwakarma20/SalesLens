@@ -17,7 +17,7 @@ export function FeatureScaffold({ children, endpoint }: FeatureScaffoldProps) {
 
   return (
     <div className="mx-auto flex max-w-[1440px] animate-fadeIn flex-col gap-6">
-      <PageHeader title={nav?.label ?? 'SalesLens'} description={nav?.description} />
+      <PageHeader title={nav?.label ?? 'Acuity'} description={nav?.description} />
       {children}
       <Card className="flex items-center gap-4 p-6">
         <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-accent/15 text-accent">

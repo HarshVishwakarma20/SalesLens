@@ -1,12 +1,13 @@
-# SalesLens: Enterprise Customer & Retail Analytics Platform
+# Acuity: Enterprise Customer & Retail Analytics Platform
+> *From raw noise to refined insight*
 
-SalesLens is an end-to-end customer intelligence and retail revenue diagnostics platform. It transforms raw transaction logs into executive dashboards, RFM segmentations, cohort retention matrices, returns leakage diagnostics, demand anomaly alerts, churn risk indices, and multi-page board-level PDF reports.
+Acuity is an end-to-end customer intelligence and retail revenue diagnostics platform. It transforms raw transaction logs into executive dashboards, RFM segmentations, cohort retention matrices, returns leakage diagnostics, demand anomaly alerts, churn risk indices, and multi-page board-level PDF reports.
 
 ---
 
 ## 1. Executive Summary
 
-Traditional retail reporting often relies on static spreadsheets or unverifiable models. SalesLens bridges this gap with an automated deterministic cleaning pipeline, rigorous statistical analytics, asynchronous database persistence, and interactive visualization.
+Traditional retail reporting often relies on static spreadsheets or unverifiable models. Acuity bridges this gap with an automated deterministic cleaning pipeline, rigorous statistical analytics, asynchronous database persistence, and interactive visualization.
 
 **Key Highlights:**
 - **Automated Data Cleaning**: Ingests multi-MB CSV/Excel logs, resolving cancellations, stripping non-product charges, and sanitizing pricing.
@@ -37,7 +38,7 @@ Traditional retail reporting often relies on static spreadsheets or unverifiable
 
 ## 3. Architecture & Data Flow
 
-SalesLens processes uploads in an asynchronous pipeline: in-memory analytics execute immediately so the web dashboard is responsive without delay, while transactional persistence to PostgreSQL runs concurrently in the background.
+Acuity processes uploads in an asynchronous pipeline: in-memory analytics execute immediately so the web dashboard is responsive without delay, while transactional persistence to PostgreSQL runs concurrently in the background.
 
 ```mermaid
 flowchart TD

@@ -1,6 +1,6 @@
-# SalesLens Backend
+# Acuity Backend
 
-FastAPI backend for the SalesLens e-commerce customer analytics platform.
+FastAPI backend for the Acuity e-commerce customer analytics platform.
 
 ---
 
@@ -194,5 +194,5 @@ treated as approximate.
 ## Analytics source of truth
 
 All formulas, weights, thresholds, and segmentation rules are taken directly
-from **SalesLens_Phase3.ipynb**.  See the notebook comments for the rationale
+from **Acuity_Phase3.ipynb**.  See the notebook comments for the rationale
 behind each design choice.

@@ -136,16 +136,16 @@ function pageHeader(doc: jsPDF, pw: number, name: string, dateStr: string, ff: s
   setFont(doc, ff, 'bold')
   doc.setFontSize(15)
   doc.setTextColor(...WHITE)
-  doc.text('SalesLens', 14, 11)
+  doc.text('Acuity', 14, 11)
 
   doc.setTextColor(...TEAL)
   doc.setFontSize(13)
-  doc.text('|', 43, 10.5)
+  doc.text('|', 33, 10.5)
 
   setFont(doc, ff, 'normal')
   doc.setFontSize(9)
   doc.setTextColor(226, 232, 240)
-  doc.text(subtitle, 47, 11)
+  doc.text(subtitle, 37, 11)
 
   doc.setFontSize(7.5)
   doc.setTextColor(148, 163, 184)
@@ -268,7 +268,7 @@ function barChart(
 // ─── Main export ───────────────────────────────────────────────────────────────
 
 /**
- * Generate and download a comprehensive 5-page A4 SalesLens Executive Report.
+ * Generate and download a comprehensive 5-page A4 Acuity Executive Report.
  *
  * Page 1: Executive Summary, Scorecard & Monthly Revenue Trajectory
  * Page 2: Customer Lifecycle & RFM Segmentation Intelligence
@@ -307,7 +307,7 @@ export async function generatePdfReport(dataset?: Dataset | null): Promise<boole
     day: '2-digit', month: 'short', year: 'numeric',
     hour: '2-digit', minute: '2-digit',
   })
-  const dsName = dataset?.name ?? 'SalesLens Verified Dataset'
+  const dsName = dataset?.name ?? 'Acuity Verified Dataset'
 
   const CUR = rd?.currencySymbol ?? (ov?.kpis as any)?.currencySymbol ?? '£'
 
@@ -925,7 +925,7 @@ export async function generatePdfReport(dataset?: Dataset | null): Promise<boole
 
   sectionTitle(doc, '3. Methodology & Compliance Sign-Off', Y, ff); Y += 4
   setFont(doc, ff, 'normal'); doc.setFontSize(7); doc.setTextColor(...GREY)
-  const signoff = 'This report was generated deterministically by SalesLens analytical pipeline. All metrics reconcile across financial ledgers, RFM quintile clustering, and 30-day statistical anomaly models without stochastic estimates. Certified for internal management and executive decision-making.'
+  const signoff = 'This report was generated deterministically by Acuity analytical pipeline. All metrics reconcile across financial ledgers, RFM quintile clustering, and 30-day statistical anomaly models without stochastic estimates. Certified for internal management and executive decision-making.'
   const signoffLines = doc.splitTextToSize(signoff, CW) as string[]
   doc.text(signoffLines, ML, Y)
 
@@ -933,6 +933,6 @@ export async function generatePdfReport(dataset?: Dataset | null): Promise<boole
   pageFooters(doc, PW, PH, datFrom, datTo, ff)
 
   // ── 5. Download ──────────────────────────────────────────────────────────────
-  download(doc, 'SalesLens_Executive_Report_' + dsName.replace(/[^a-zA-Z0-9_-]/g, '_') + '.pdf')
+  download(doc, 'Acuity_Executive_Report_' + dsName.replace(/[^a-zA-Z0-9_-]/g, '_') + '.pdf')
   return true
 }

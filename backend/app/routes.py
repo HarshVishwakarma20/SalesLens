@@ -101,7 +101,7 @@ def health() -> dict:
     db_status = check_connection()
     return {
         "status": "ok",
-        "service": "SalesLens API",
+        "service": "Acuity API",
         "database": db_status,
     }
 
@@ -1057,7 +1057,7 @@ def download_cleaned_file() -> StreamingResponse:
     return StreamingResponse(
         io.BytesIO(fallback_csv.encode("utf-8")),
         media_type="text/csv",
-        headers={"Content-Disposition": 'attachment; filename="cleaned_saleslens_dataset.csv"'},
+        headers={"Content-Disposition": 'attachment; filename="cleaned_acuity_dataset.csv"'},
     )
 
 

@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.routes import router
 
 app = FastAPI(
-    title="SalesLens API",
+    title="Acuity API",
     description=(
         "E-commerce customer analytics platform. "
         "Upload a transactions file and explore RFM segments, "

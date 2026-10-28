@@ -1,7 +1,7 @@
 -- =============================================================================
--- SalesLens — PostgreSQL Database Initialization Script
+-- Acuity — PostgreSQL Database Initialization Script
 -- =============================================================================
--- Database: saleslens_db
+-- Database: acuity_db
 -- Description: Creates relational schema for persisted analytics results.
 -- =============================================================================
 

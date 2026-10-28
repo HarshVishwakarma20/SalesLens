@@ -26,7 +26,7 @@ STORAGE_DIR.mkdir(exist_ok=True)
 # ---------------------------------------------------------------------------
 DB_HOST: str = os.getenv("DB_HOST", "localhost")
 DB_PORT: int = int(os.getenv("DB_PORT", "5432"))
-DB_NAME: str = os.getenv("DB_NAME", "saleslens_db")
+DB_NAME: str = os.getenv("DB_NAME", "acuity_db")
 DB_USER: str = os.getenv("DB_USER", "postgres")
 DB_PASSWORD: str = os.getenv("DB_PASSWORD", "")
 DB_SSLMODE: str = os.getenv("DB_SSLMODE", "prefer")

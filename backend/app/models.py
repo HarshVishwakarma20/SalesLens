@@ -1,5 +1,5 @@
 """
-SQLAlchemy ORM models for SalesLens PostgreSQL database integration.
+SQLAlchemy ORM models for Acuity PostgreSQL database integration.
 Defines schemas for persistence of all analytics outputs and dataset metadata.
 """
 from __future__ import annotations

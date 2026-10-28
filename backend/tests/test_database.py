@@ -1,5 +1,5 @@
 """
-Tests for PostgreSQL database integration and models in SalesLens.
+Tests for PostgreSQL database integration and models in Acuity.
 """
 from __future__ import annotations
 

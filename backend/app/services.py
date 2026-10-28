@@ -181,9 +181,9 @@ def _run_pipeline(
                 )
                 if _is_current(gen):
                     _s.dataset_id = ds_id
-                print(f"[SalesLens DB] Background persistence completed successfully (dataset ID: {ds_id}).")
+                print(f"[Acuity DB] Background persistence completed successfully (dataset ID: {ds_id}).")
             except Exception as db_exc:
-                print(f"[SalesLens DB] Background database persistence skipped or warning: {db_exc}")
+                print(f"[Acuity DB] Background database persistence skipped or warning: {db_exc}")
 
         t = threading.Thread(
             target=_persist_in_background,

@@ -28,7 +28,7 @@ from app.models import (
     RfmSegmentModel,
 )
 
-logger = logging.getLogger("saleslens.db_service")
+logger = logging.getLogger("acuity.db_service")
 
 
 def _sanitize_val(val: Any) -> Any:

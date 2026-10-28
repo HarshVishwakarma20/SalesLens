@@ -91,7 +91,7 @@ export function Topbar() {
   return (
     <header className="flex h-[60px] shrink-0 items-center gap-3 border-b border-border bg-background/80 px-4 backdrop-blur sm:px-5">
       <nav aria-label="Breadcrumb" className="flex min-w-0 items-center gap-2 text-sm">
-        <span className="hidden text-muted-foreground sm:inline">SalesLens</span>
+        <span className="hidden text-muted-foreground sm:inline">Acuity</span>
         <span className="hidden text-faint sm:inline">/</span>
         <span className="truncate font-semibold text-foreground">{current?.label ?? 'Data Source'}</span>
       </nav>

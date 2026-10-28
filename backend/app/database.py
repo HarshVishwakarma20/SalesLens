@@ -1,5 +1,5 @@
 """
-Database connection, engine, and session management for SalesLens.
+Database connection, engine, and session management for Acuity.
 Integrates PostgreSQL with SQLAlchemy 2.0 and psycopg2.
 """
 from __future__ import annotations
@@ -11,7 +11,7 @@ from sqlalchemy.orm import declarative_base, sessionmaker, Session
 
 from app.config import get_database_url, DB_HOST, DB_PORT, DB_NAME, DB_USER
 
-logger = logging.getLogger("saleslens.database")
+logger = logging.getLogger("acuity.database")
 
 Base = declarative_base()
 

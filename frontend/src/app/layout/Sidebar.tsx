@@ -58,14 +58,14 @@ export function Sidebar() {
     >
       <div className={cn('flex h-[60px] items-center gap-2.5 border-b border-border px-4', collapsed && 'justify-center px-0')}>
         <div className="relative size-8 shrink-0">
-          <img src="/sl-logo.png" alt="SalesLens" className="size-8 object-contain" style={{ filter: 'drop-shadow(0 0 6px rgba(0,245,212,0.5))' }} />
+          <img src="/acuity-logo.png" alt="Acuity" className="size-8 object-contain" style={{ filter: 'drop-shadow(0 0 6px rgba(0,245,212,0.5))' }} />
         </div>
         {!collapsed && (
           <span
             className="text-lg font-bold tracking-tight"
             style={{ background: 'linear-gradient(135deg, #00F5D4 0%, #0EA5E9 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}
           >
-            SalesLens
+            Acuity
           </span>
         )}
       </div>
